@@ -102,6 +102,25 @@ class Statistics extends CI_Controller {
 		echo json_encode($yearstats);
 	}
 
+	public function get_month() {
+		$this->load->model('logbook_model');
+
+		$totals_month = $this->logbook_model->totals_month();
+
+		$monthstats = array();
+		
+		$i = 0;
+		if ($totals_month) {
+			foreach($totals_month->result() as $qso_numbers) {
+				$monthstats[$i]['month'] = $qso_numbers->month;
+				$monthstats[$i++]['total'] = $qso_numbers->total;
+			}
+		}
+		
+		header('Content-Type: application/json');
+		echo json_encode($monthstats);
+	}
+
 	public function get_mode() {
 		$this->load->model('logbook_model');
 
