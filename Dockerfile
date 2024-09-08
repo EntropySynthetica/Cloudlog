@@ -1,28 +1,19 @@
-# Use the official image for PHP and Apache
-FROM php:7.4-apache
+FROM ericaslab.azurecr.io/laravel-image:php8.3.laravel10.2.9
 
-# Set the working directory to /var/www/html
-WORKDIR /var/www/html
+WORKDIR /var/www/laravel
 
-# Install system dependencies, including git and libxml2
-RUN apt-get update && apt-get install -y \
-    libcurl4-openssl-dev \
-    libxml2-dev \
-    libzip-dev \
-    zlib1g-dev \
-    libpng-dev \
-    libonig-dev \
-    default-mysql-client \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && docker-php-ext-install pdo_mysql \
-    && docker-php-ext-install mysqli \
-    && docker-php-ext-install gd \
-    && docker-php-ext-install mbstring \
-    && docker-php-ext-install zip \
-    && docker-php-ext-install xml \
-    && a2enmod rewrite
+# Clear out the public directory
+RUN rm -rf /var/www/laravel/public
 
-# Expose port 80
-EXPOSE 80
+# Copy the repo into the public directory
+COPY . /var/www/laravel/public
+
+# Fixup perms
+RUN chmod -R u+rwX,go+rX /var/www/laravel/ && chown -R www-data:www-data /var/www/laravel/
+
+# Set the app to start in production mode
+#RUN sed -i "s|'ENVIRONMENT', 'development'|'ENVIRONMENT', 'production'|" /var/www/laravel/public/index.php
+
+# Copy in our config files
+ADD ./config/database.php /var/www/laravel/public/application/config/database.php
+ADD ./config/config.php /var/www/laravel/public/application/config/config.php
