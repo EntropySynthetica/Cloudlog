@@ -1319,6 +1319,7 @@ class Logbook extends CI_Controller {
 		case 'Band': $ret.= '<th>'.$ctx->lang->line('gen_hamradio_band').'</th>'; break;
 		case 'Frequency': $ret.= '<th>'.$ctx->lang->line('gen_hamradio_frequency').'</th>'; break;
 		case 'Operator': $ret.= '<th>'.$ctx->lang->line('gen_hamradio_operator').'</th>'; break;
+		case 'Comment': $ret.= '<th>'.$ctx->lang->line('gen_hamradio_comment').'</th>'; break;
 		}
 		return $ret;
 	}
@@ -1351,6 +1352,7 @@ class Logbook extends CI_Controller {
 		case 'Frequency':    $ret.= '<td>'; if($row->COL_SAT_NAME != null) { $ret.= '<a href="https://db.satnogs.org/search/?q='.$row->COL_SAT_NAME.'" target="_blank">'.$row->COL_SAT_NAME.'</a></td>'; } else { if($row->COL_FREQ != null) { $ret.= $ci->frequency->hz_to_mhz($row->COL_FREQ); } else { $ret.= strtolower($row->COL_BAND); } } $ret.= '</td>'; break;
 		case 'State':   $ret.= '<td>' . ($row->COL_STATE) . '</td>'; break;
 		case 'Operator': $ret.= '<td>' . ($row->COL_OPERATOR) . '</td>'; break;
+		case 'Comment': $ret.= '<td>' . ($row->COL_COMMENT) . '</td>'; break;
 		}
 		return $ret;
 	}
