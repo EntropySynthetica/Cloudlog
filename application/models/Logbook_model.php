@@ -4340,14 +4340,13 @@ class Logbook_model extends CI_Model
 
   public function get_entity($dxcc)
   {
-    $sql = "select name, cqz, lat, 'long' from dxcc_entities where adif = " . $dxcc;
-    $query = $this->db->query($sql);
-
-    if ($query->result() > 0) {
-      $row = $query->row_array();
-      return $row;
-    }
-    return '';
+      $sql = "SELECT name, cqz, lat, `long` FROM dxcc_entities WHERE adif = ?";
+      $query = $this->db->query($sql, array($dxcc));
+  
+      if ($query->num_rows() > 0) {
+          return $query->row_array();
+      }
+      return '';
   }
 
   /*
@@ -4599,7 +4598,7 @@ class Logbook_model extends CI_Model
 
         // if we got nothing, it's probably because our session key is invalid, try again
         if (($callbook['callsign'] ?? '') == '') {
-          $qrz_session_key = $this->qrz->session($this->config->item('qrz_username'), $this->config->item('qrz_password'));
+          $qrz_session_key = $this->qrz->session($this->session->userdata('callbook_username'), $decrypted_password);
           $this->session->set_userdata('qrz_session_key', $qrz_session_key);
           $callbook = $this->qrz->search($callsign, $this->session->userdata('qrz_session_key'), $use_fullname);
           // if we still got nothing, and it's a compound callsign, then try a search for the base call
@@ -4628,7 +4627,7 @@ class Logbook_model extends CI_Model
 
         // If HamQTH session has expired, start a new session and retry the search.
         if ($callbook['error'] == "Session does not exist or expired") {
-          $hamqth_session_key = $this->hamqth->session($this->config->item('hamqth_username'), $this->config->item('hamqth_password'));
+          $hamqth_session_key = $this->hamqth->session($this->session->userdata('callbook_username'), $decrypted_password);
           $this->session->set_userdata('hamqth_session_key', $hamqth_session_key);
           $callbook = $this->hamqth->search($callsign, $this->session->userdata('hamqth_session_key'));
         }
@@ -4855,6 +4854,15 @@ class Logbook_model extends CI_Model
       $json["markers"][] = $plot;
     }
     return $json;
+  }
+
+  public function get_oldest_qso_date()
+  {
+    $query = $this->db->query('SELECT DATE(min(col_time_on)) as oldest_qso_date FROM TABLE_HRD_CONTACTS_V01');
+    $row = $query->row();
+    if (isset($row)) {
+      return $row->oldest_qso_date;
+    }
   }
 }
 
