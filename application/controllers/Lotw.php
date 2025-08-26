@@ -320,7 +320,7 @@ class Lotw extends CI_Controller {
 					echo $station_profile->station_callsign." (".$station_profile->station_profile_name.") Upload Failed"."<br>";
 				}
 
-				$pos = strpos($result, "<!-- .UPL.  accepted -->");
+				$pos = strpos($result, "<!-- .UPL. accepted -->");
 
 				if ($pos === false) {
 					// Upload of TQ8 Failed for unknown reason
@@ -995,6 +995,7 @@ class Lotw extends CI_Controller {
 			"INSPR7"	=> "INSPIRE-SAT 7",
 			"SONATE"	=> "SONATE-2",
 			'AO-123'	=> "ASRTU-1",
+			'TEV2-3'	=> "TEVEL2-3",
 		);
 
 		return array_search(strtoupper($satname),$arr,true);
@@ -1044,6 +1045,33 @@ class Lotw extends CI_Controller {
 				} elseif ($submode == "Q65") {
 					return "Q65";
 					break;
+				} elseif ($submode == "FSQCALL") {
+					return "DATA";
+					break;
+				} elseif ($submode == "JS8") {
+					return "DATA";
+					break;
+				} elseif ($submode == "MFSK11") {
+					return "DATA";
+					break;
+				} elseif ($submode == "MFSK128") {
+					return "DATA";
+					break;
+				} elseif ($submode == "MFSK22") {
+					return "DATA";
+					break;
+				} elseif ($submode == "MFSK31") {
+					return "DATA";
+					break;
+				} elseif ($submode == "MFSK32") {
+					return "DATA";
+					break;
+				} elseif ($submode == "MFSK4") {
+					return "DATA";
+					break;
+				} elseif ($submode == "MFSK64") {
+					return "DATA";
+					break;
 				} else {
 					return "DATA";
 					break;
@@ -1074,7 +1102,7 @@ class Lotw extends CI_Controller {
 					return "PSK125";
 					break;
 				} elseif ($submode == "PSK500") {
-					return "PSK500";
+					return "DATA";
 					break;
 				} elseif ($submode == "PSK63F") {
 					return "PSK63F";
@@ -1103,10 +1131,325 @@ class Lotw extends CI_Controller {
 				} elseif ($submode == "PSK2K") {
 					return "PSK2K";
 					break;
+				} elseif ($submode == "PSK1000") {
+					return "DATA";
+					break;
+				} elseif ($submode == "PSK250") {
+					return "DATA";
+					break;
+				} elseif ($submode == "QPSK250") {
+					return "DATA";
+					break;
+				} elseif ($submode == "QPSK500") {
+					return "DATA";
+					break;
+				} elseif ($submode == "SIM31") {
+					return "DATA";
+					break;
 				} else {
 					return "DATA";
 					break;
 				}
+			case "JT65":
+				if ($submode == "JT65A") {
+					return "JT65";
+					break;
+				} elseif ($submode == "JT65B") {
+					return "JT65";
+					break;
+				} elseif ($submode == "JT65B2") {
+					return "JT65";
+					break;
+				} elseif ($submode == "JT65C") {
+					return "JT65";
+					break;
+				} elseif ($submode == "JT65C2") {
+					return "JT65";
+					break;
+				} else {
+					return "JT65";
+					break;
+				}
+			case "JT4":
+				if ($submode == "JT4A") {
+					return "JT4";
+					break;
+				} elseif ($submode == "JT4B") {
+					return "JT4";
+					break;
+				} elseif ($submode == "JT4C") {
+					return "JT4";
+					break;
+				} elseif ($submode == "JT4D") {
+					return "JT4";
+					break;
+				} elseif ($submode == "JT4E") {
+					return "JT4";
+					break;
+				} elseif ($submode == "JT4F") {
+					return "JT4";
+					break;
+				} elseif ($submode == "JT4G") {
+					return "JT4";
+					break;
+				} else {
+					return "JT4";
+					break;
+				}
+			case "JT9":
+				if ($submode == "JT9-1") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9-10") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9-2") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9-30") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9-5") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9A") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9B") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9C") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9D") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9E") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9E FAST") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9F") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9F FAST") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9G") {
+					return "JT9G";
+					break;
+				} elseif ($submode == "JT9G FAST") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9H") {
+					return "JT9";
+					break;
+				} elseif ($submode == "JT9H FAST") {
+					return "JT9";
+					break;
+				} else {
+					return "JT9";
+					break;
+				}
+			case "QRA64":
+				if ($submode == "QRA64A") {
+					return "QRA64";
+					break;
+				} elseif ($submode == "QRA64B") {
+					return "QRA64";
+					break;
+				} elseif ($submode == "QRA64C") {
+					return "QRA64";
+					break;
+				} elseif ($submode == "QRA64D") {
+					return "QRA64";
+					break;
+				} elseif ($submode == "QRA64E") {
+					return "QRA64";
+					break;
+				} else {
+					return "QRA64";
+					break;
+				}
+			case "ISCAT":
+				if ($submode == "ISCAT-A") {
+					return "ISCAT";
+					break;
+				} elseif ($submode == "ISCAT-B") {
+					return "ISCAT";
+					break;
+				} else {
+					return "ISCAT";
+					break;
+				}
+			case "OLIVIA":
+				if ($submode == "OLIVIA 16/1000") {
+					return "OLIVIA";
+					break;
+				} elseif ($submode == "OLIVIA 16/500") {
+					return "OLIVIA";
+					break;
+				} elseif ($submode == "OLIVIA 32/1000") {
+					return "OLIVIA";
+					break;
+				} elseif ($submode == "OLIVIA 4/125") {
+					return "OLIVIA";
+					break;
+				} elseif ($submode == "OLIVIA 4/250") {
+					return "OLIVIA";
+					break;
+				} elseif ($submode == "OLIVIA 8/250") {
+					return "OLIVIA";
+					break;
+				} elseif ($submode == "OLIVIA 8/500") {
+					return "OLIVIA";
+					break;
+				} else {
+					return "OLIVIA";
+					break;
+				}
+			case "OPERA":
+				if ($submode == "OPERA-BEACON") {
+					return "OPERA";
+					break;
+				} elseif ($submode == "OPERA-QSO") {
+					return "OPERA";
+					break;
+				} else {
+					return "OPERA";
+					break;
+				}
+			case "ROS":
+				if ($submode == "ROS-EME") {
+					return "ROS";
+					break;
+				} elseif ($submode == "ROS-HF") {
+					return "ROS";
+					break;
+				} elseif ($submode == "ROS-MF") {
+					return "ROS";
+					break;
+				} else {
+					return "ROS";
+					break;
+				}
+			case "HELL":
+				if ($submode == "FMHELL") {
+					return "HELL";
+					break;
+				} elseif ($submode == "FSKHELL") {
+					return "HELL";
+					break;
+				} elseif ($submode == "HELL80") {
+					return "HELL";
+					break;
+				} elseif ($submode == "HFSK") {
+					return "HFSK";
+					break;
+				} elseif ($submode == "PSKHELL") {
+					return "HELL";
+					break;
+				} else {
+					return "HELL";
+					break;
+				}
+			case "DOMINO":
+				if ($submode == "DOMINOEX") {
+					return "DOMINO";
+					break;
+				} elseif ($submode == "DOMINOF") {
+					return "DOMINO";
+					break;
+				} else {
+					return "DOMINO";
+					break;
+				}
+			case "CHIP":
+				if ($submode == "CHIP128") {
+					return "CHIP";
+					break;
+				} elseif ($submode == "CHIP64") {
+					return "CHIP";
+					break;
+				} else {
+					return "CHIP";
+					break;
+				}
+			case "PAC":
+				if ($submode == "PAC2") {
+					return "PACTOR";
+					break;
+				} elseif ($submode == "PAC3") {
+					return "PACTOR";
+					break;
+				} elseif ($submode == "PAC4") {
+					return "PACTOR";
+					break;
+				} else {
+					return "PACTOR";
+					break;
+				}
+			case "PAX":
+				if ($submode == "PAX2") {
+					return "PAX";
+					break;
+				} else {
+					return "PAX";
+					break;
+				}
+			case "TOR":
+				if ($submode == "AMTORFEC") {
+					return "AMTOR";
+					break;
+				} elseif ($submode == "GTOR") {
+					return "GTOR";
+					break;
+				} else {
+					return "AMTOR";
+					break;
+				}
+			case "THRB":
+				if ($submode == "THRBX") {
+					return "THROB";
+					break;
+				} else {
+					return "THROB";
+					break;
+				}
+			case "SSB":
+				if ($submode == "LSB") {
+					return "SSB";
+					break;
+				} elseif ($submode == "USB") {
+					return "SSB";
+					break;
+				} else {
+					return "SSB";
+					break;
+				}
+			case "RTTY":
+				if ($submode == "ASCI") {
+					return "RTTY";
+					break;
+				} else {
+					return "RTTY";
+					break;
+				}
+			case "CW":
+				if ($submode == "PCW") {
+					return "CW";
+					break;
+				} else {
+					return "CW";
+					break;
+				}
+			case "CLO":
+				return "CLOVER";
+				break;
+			case "V4":
+				return "DATA";
+				break;
 			default:
 				return $mode;
 		endswitch;

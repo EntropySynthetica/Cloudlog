@@ -8,10 +8,11 @@ class Logbook_model extends CI_Model
   {
 
     $callsign = str_replace('Ø', '0', $this->input->post('callsign'));
-    // Join date+time
-    $datetime = date("Y-m-d", strtotime($this->input->post('start_date'))) . " " . $this->input->post('start_time');
+    // Join date+time - Parse date according to user's format preference
+    $parsed_date = $this->parse_user_date($this->input->post('start_date'));
+    $datetime = $parsed_date . " " . $this->input->post('start_time');
     if ($this->input->post('end_time') != null) {
-      $datetime_off = date("Y-m-d", strtotime($this->input->post('start_date'))) . " " . $this->input->post('end_time');
+      $datetime_off = $parsed_date . " " . $this->input->post('end_time');
       // if time off < time on, and time off is on 00:xx >> add 1 day (concidering start and end are between 23:00 and 00:59) //
       $_tmp_datetime_off = strtotime($datetime_off);
       if (($_tmp_datetime_off < strtotime($datetime)) && (substr($this->input->post('end_time'), 0, 2) == "00")) {
@@ -4244,6 +4245,7 @@ class Logbook_model extends CI_Model
       # try: $a looks like a call (.\d[A-Z]) and $b doesn't (.\d), they are
       # swapped. This still does not properly handle calls like DJ1YFK/KH7K where
       # only the OP's experience says that it's DJ1YFK on KH7K.
+
       if (!$c && $a && $b) {                          # $a and $b exist, no $c
         if (preg_match($lidadditions, $b)) {        # check if $b is a lid-addition
           $b = $a;
@@ -4864,8 +4866,126 @@ class Logbook_model extends CI_Model
       return $row->oldest_qso_date;
     }
   }
+
+  /**
+  * Processes a batch of QRZ ADIF records for efficient database updates.
+  *
+  * @param array $batch_data Array of records from the ADIF file.
+  * @return string HTML table rows for the processed batch.
+  */
+  public function process_qrz_batch($batch_data) {
+    $table = "";
+    $update_batch_data = [];
+    $this->load->model('Stations');
+
+    if (empty($batch_data)) {
+      return '';
+    }
+
+    // Step 1: Build WHERE clause for fetching potential matches
+    $this->db->select($this->config->item('table_name').'.COL_PRIMARY_KEY, '.$this->config->item('table_name').'.COL_CALL, '.$this->config->item('table_name').'.COL_TIME_ON, '.$this->config->item('table_name').'.COL_BAND, '.$this->config->item('table_name').'.COL_MODE, ');
+    $this->db->from($this->config->item('table_name'));
+    $this->db->group_start(); // Start grouping OR conditions
+    foreach ($batch_data as $record) {
+      $this->db->or_group_start(); // Start group for this record's AND conditions
+      $this->db->where($this->config->item('table_name').'.COL_CALL', $record['call']);
+      $this->db->like($this->config->item('table_name').'.COL_TIME_ON', $record['time_on'], 'after');
+      $this->db->where($this->config->item('table_name').'.COL_BAND', $record['band']);
+      $this->db->group_end(); // End group for this record's AND conditions
+    }
+    $this->db->group_end(); // End grouping OR conditions
+
+    // Step 2: Fetch Matches
+    $query = $this->db->get();
+    $db_results = $query->result_array();
+
+    // Index DB results for faster lookup
+    $indexed_results = [];
+    foreach ($db_results as $row) {
+	  $time = substr($row['COL_TIME_ON'], 0, 16);
+      $key = $row['COL_CALL'] . '|' . $time . '|' . $row['COL_BAND'];
+      $indexed_results[$key] = $row['COL_PRIMARY_KEY'];
+    }
+
+    // Step 3 & 4: Prepare Batch Update and Build Table Rows
+    foreach ($batch_data as $record) {
+      $match_key = $record['call'] . '|' . $record['time_on'] . '|' . $record['band'];
+      $log_status = '<span class="badge text-bg-danger">Not Found</span>';
+      $primary_key = null;
+
+      if (isset($indexed_results[$match_key])) {
+        $primary_key = $indexed_results[$match_key];
+        $log_status = '<span class="badge text-bg-success">Confirmed</span>';
+
+        // Prepare data for batch update
+        $update_batch_data[] = [
+          'COL_PRIMARY_KEY' => $primary_key,
+          'COL_QRZCOM_QSO_DOWNLOAD_DATE' => $record['qsl_date'],
+          'COL_QRZCOM_QSO_DOWNLOAD_STATUS' => $record['qsl_rcvd'] // Should be 'Y' if confirmed
+        ];
+      }
+
+      // Build table row
+      $table .= "<tr>";
+      $table .= "<td>" . $record['station_callsign'] . "</td>";
+      $table .= "<td>" . $record['time_on'] . "</td>";
+      $table .= "<td>" . $record['call'] . "</td>";
+      $table .= "<td>" . $record['mode'] . "</td>";
+      $table .= "<td>" . $record['qsl_date'] . "</td>";
+      $table .= "<td>" . ($record['qsl_rcvd'] == 'Y' ? '<span class="badge text-bg-success">Yes</span>' : '<span class="badge text-bg-danger">No</span>') . "</td>";
+      $table .= "</tr>";
+    }
+
+    // Step 5: Execute Batch Update
+    if (!empty($update_batch_data)) {
+      $this->db->update_batch($this->config->item('table_name'), $update_batch_data, 'COL_PRIMARY_KEY');
+    }
+
+    // Step 6: Return Table HTML
+    return $table;
+  }
+
+  /**
+   * Parse date from user input according to user's preferred date format
+   * @param string $date_input The date string from user input
+   * @param string $user_format The user's preferred date format (e.g., 'd/m/Y', 'Y-m-d')
+   * @return string Returns date in Y-m-d format for database storage, or original input if parsing fails
+   */
+  private function parse_user_date($date_input, $user_format = null) {
+    if (empty($date_input)) {
+      return $date_input;
+    }
+    
+    // If no user format provided, try to get it from session or config
+    if ($user_format === null) {
+      if ($this->session->userdata('user_date_format')) {
+        $user_format = $this->session->userdata('user_date_format');
+      } else {
+        $user_format = $this->config->item('qso_date_format');
+      }
+    }
+    
+    // Try to parse with the user's format first
+    $date = DateTime::createFromFormat($user_format, $date_input);
+    if ($date !== false) {
+      return $date->format('Y-m-d');
+    }
+    
+    // Fallback to strtotime for formats it can handle (mostly Y-m-d, m/d/Y, etc.)
+    $timestamp = strtotime($date_input);
+    if ($timestamp !== false) {
+      return date('Y-m-d', $timestamp);
+    }
+    
+    // If all parsing fails, return the original input and let the database handle it
+    return $date_input;
+  }
 }
 
+// Function to validate ADIF date format
+// This function checks if the date is in the correct format (YYYYMMDD) and is a valid date.
+// It uses the DateTime class to create a date object from the given date string and format. If the date is valid, it returns true; otherwise, it returns false.
+// The function also allows specifying a different format if needed, defaulting to 'Ymd' (YYYYMMDD).
 function validateADIFDate($date, $format = 'Ymd')
 {
   $d = DateTime::createFromFormat($format, $date);
