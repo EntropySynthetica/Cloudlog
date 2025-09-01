@@ -99,9 +99,12 @@ class Logbook_model extends CI_Model
     if ($this->input->post('country') == "") {
       $dxcc = $this->check_dxcc_table(strtoupper(trim($callsign)), $datetime);
       $country = ucwords(strtolower($dxcc[1]), "- (/");
+      $dxcc_id = $dxcc[0];
     } else {
       $country = $this->input->post('country');
     }
+
+
 
     if ($this->input->post('cqz') == "") {
       $dxcc = $this->check_dxcc_table(strtoupper(trim($callsign)), $datetime);
@@ -115,7 +118,6 @@ class Logbook_model extends CI_Model
     }
 
     if ($this->input->post('dxcc_id') == "") {
-
       $dxcc = $this->check_dxcc_table(strtoupper(trim($callsign)), $datetime);
       if (empty($dxcc[0])) {
         $dxcc_id = null;
@@ -123,7 +125,12 @@ class Logbook_model extends CI_Model
         $dxcc_id = $dxcc[0];
       }
     } else {
-      $dxcc_id = $this->input->post('dxcc_id');
+      // if $country isn't empty and dxcc_id is 0 use the DXCC ID from the callsign lookup
+      if (!empty($country) && $this->input->post('dxcc_id') == "0") {
+        $dxcc_id = $dxcc_id;
+      } else {
+        $dxcc_id = $this->input->post('dxcc_id');
+      }
     }
 
     if ($this->input->post('continent') == "") {
@@ -185,13 +192,13 @@ class Logbook_model extends CI_Model
         case 'power':
           $qso_rx_power = $srx_string;
           break;
-          // Example for more sophisticated exchanges and their split into the db:
-          //case 'name/power':
-          //  if (strlen($srx_string) == 0) break;
-          //  $exch_pt = explode(" ",$srx_string);
-          //  $qso_name = $exch_pt[0];
-          //  if (count($exch_pt)>1) $qso_power = $exch_pt[1];
-          //  break;
+        // Example for more sophisticated exchanges and their split into the db:
+        //case 'name/power':
+        //  if (strlen($srx_string) == 0) break;
+        //  $exch_pt = explode(" ",$srx_string);
+        //  $qso_name = $exch_pt[0];
+        //  if (count($exch_pt)>1) $qso_power = $exch_pt[1];
+        //  break;
         default:
       }
     }
@@ -1087,7 +1094,15 @@ class Logbook_model extends CI_Model
 
     $entity = $this->get_entity($this->input->post('dxcc_id'));
     $stationId = $this->input->post('station_profile');
-    $country = ucwords(strtolower($entity['name']), "- (/");
+
+    if (is_array($entity)) {
+      $rawCountry = $entity['name'] ?? '';
+    } elseif (is_object($entity)) {
+      $rawCountry = $entity->name ?? '';
+    } else {
+      $rawCountry = (string)$entity;
+    }
+    $country = ucwords(strtolower($rawCountry), "- (/");
 
     // be sure that station belongs to user
     $CI = &get_instance();
@@ -2079,7 +2094,7 @@ class Logbook_model extends CI_Model
     $this->db->where_in('station_id', $logbooks_locations_array);
     $this->db->group_start();
     $this->db->like('SUBSTRING(COL_GRIDSQUARE, 1, 4)', substr($grid, 0, 4));
-    $this->db->or_like('SUBSTRING(COL_VUCC_GRIDS, 1, 4)', substr($grid, 0, 4));
+    $this->db->or_like('COL_VUCC_GRIDS', substr($grid, 0, 4));
     $this->db->group_end();
 
     if ($band != null && $band != 'SAT') {
@@ -2621,95 +2636,99 @@ class Logbook_model extends CI_Model
     }
 
     if (!empty($logbooks_locations_array)) {
-      $this->db->select('
-	  COUNT(IF(COL_QSL_SENT="Y",COL_QSL_SENT,null)) as QSL_Sent,
-	  COUNT(IF(COL_QSL_RCVD="Y",COL_QSL_RCVD,null)) as QSL_Received,
-	  COUNT(IF(COL_QSL_SENT IN("Q", "R") ,COL_QSL_SENT,null)) as QSL_Requested,
-	  COUNT(IF(COL_EQSL_QSL_SENT="Y",COL_EQSL_QSL_SENT,null)) as eQSL_Sent,
-	  COUNT(IF(COL_EQSL_QSL_RCVD="Y",COL_EQSL_QSL_RCVD,null)) as eQSL_Received,
-	  COUNT(IF(COL_LOTW_QSL_SENT="Y",COL_LOTW_QSL_SENT,null)) as LoTW_Sent,
-	  COUNT(IF(COL_LOTW_QSL_RCVD="Y",COL_LOTW_QSL_RCVD,null)) as LoTW_Received,
-	  COUNT(IF(COL_QRZCOM_QSO_UPLOAD_STATUS="Y",COL_QRZCOM_QSO_UPLOAD_STATUS,null)) as QRZ_Sent,
-	  COUNT(IF(COL_QRZCOM_QSO_DOWNLOAD_STATUS="Y",COL_QRZCOM_QSO_DOWNLOAD_STATUS,null)) as QRZ_Received,
-	  COUNT(IF(COL_QSL_SENT="Y" and DATE(COL_QSLSDATE)=DATE(SYSDATE()),COL_QSL_SENT,null)) as QSL_Sent_today,
-	  COUNT(IF(COL_QSL_RCVD="Y" and DATE(COL_QSLRDATE)=DATE(SYSDATE()),COL_QSL_RCVD,null)) as QSL_Received_today,
-	  COUNT(IF(COL_QSL_SENT IN("Q", "R") and DATE(COL_QSLSDATE)=DATE(SYSDATE()) ,COL_QSL_SENT,null)) as QSL_Requested_today,
-	  COUNT(IF(COL_EQSL_QSL_SENT="Y" and DATE(COL_EQSL_QSLSDATE)=DATE(SYSDATE()),COL_EQSL_QSL_SENT,null)) as eQSL_Sent_today,
-	  COUNT(IF(COL_EQSL_QSL_RCVD="Y" and DATE(COL_EQSL_QSLRDATE)=DATE(SYSDATE()),COL_EQSL_QSL_RCVD,null)) as eQSL_Received_today,
-	  COUNT(IF(COL_LOTW_QSL_SENT="Y" and DATE(COL_LOTW_QSLSDATE)=DATE(SYSDATE()),COL_LOTW_QSL_SENT,null)) as LoTW_Sent_today,
-	  COUNT(IF(COL_LOTW_QSL_RCVD="Y" and DATE(COL_LOTW_QSLRDATE)=DATE(SYSDATE()),COL_LOTW_QSL_RCVD,null)) as LoTW_Received_today,
-	  COUNT(IF(COL_QRZCOM_QSO_UPLOAD_STATUS="Y" and DATE(COL_QRZCOM_QSO_UPLOAD_DATE)=DATE(SYSDATE()),COL_QRZCOM_QSO_UPLOAD_STATUS,null)) as QRZ_Sent_today,
-	  COUNT(IF(COL_QRZCOM_QSO_DOWNLOAD_STATUS="Y" and DATE(COL_QRZCOM_QSO_DOWNLOAD_DATE)=DATE(SYSDATE()),COL_QRZCOM_QSO_DOWNLOAD_STATUS,null)) as QRZ_Received_today
-	');
+      // Pre-calculate today's date for better performance
+      $today_date = date('Y-m-d');
+
+      $this->db->select("
+	  COUNT(IF(COL_QSL_SENT='Y',COL_QSL_SENT,null)) as QSL_Sent,
+	  COUNT(IF(COL_QSL_RCVD='Y',COL_QSL_RCVD,null)) as QSL_Received,
+	  COUNT(IF(COL_QSL_SENT IN('Q', 'R') ,COL_QSL_SENT,null)) as QSL_Requested,
+	  COUNT(IF(COL_EQSL_QSL_SENT='Y',COL_EQSL_QSL_SENT,null)) as eQSL_Sent,
+	  COUNT(IF(COL_EQSL_QSL_RCVD='Y',COL_EQSL_QSL_RCVD,null)) as eQSL_Received,
+	  COUNT(IF(COL_LOTW_QSL_SENT='Y',COL_LOTW_QSL_SENT,null)) as LoTW_Sent,
+	  COUNT(IF(COL_LOTW_QSL_RCVD='Y',COL_LOTW_QSL_RCVD,null)) as LoTW_Received,
+	  COUNT(IF(COL_QRZCOM_QSO_UPLOAD_STATUS='Y',COL_QRZCOM_QSO_UPLOAD_STATUS,null)) as QRZ_Sent,
+	  COUNT(IF(COL_QRZCOM_QSO_DOWNLOAD_STATUS='Y',COL_QRZCOM_QSO_DOWNLOAD_STATUS,null)) as QRZ_Received,
+	  COUNT(IF(COL_QSL_SENT='Y' and DATE(COL_QSLSDATE)='$today_date',COL_QSL_SENT,null)) as QSL_Sent_today,
+	  COUNT(IF(COL_QSL_RCVD='Y' and DATE(COL_QSLRDATE)='$today_date',COL_QSL_RCVD,null)) as QSL_Received_today,
+	  COUNT(IF(COL_QSL_SENT IN('Q', 'R') and DATE(COL_QSLSDATE)='$today_date' ,COL_QSL_SENT,null)) as QSL_Requested_today,
+	  COUNT(IF(COL_EQSL_QSL_SENT='Y' and DATE(COL_EQSL_QSLSDATE)='$today_date',COL_EQSL_QSL_SENT,null)) as eQSL_Sent_today,
+	  COUNT(IF(COL_EQSL_QSL_RCVD='Y' and DATE(COL_EQSL_QSLRDATE)='$today_date',COL_EQSL_QSL_RCVD,null)) as eQSL_Received_today,
+	  COUNT(IF(COL_LOTW_QSL_SENT='Y' and DATE(COL_LOTW_QSLSDATE)='$today_date',COL_LOTW_QSL_SENT,null)) as LoTW_Sent_today,
+	  COUNT(IF(COL_LOTW_QSL_RCVD='Y' and DATE(COL_LOTW_QSLRDATE)='$today_date',COL_LOTW_QSL_RCVD,null)) as LoTW_Received_today,
+	  COUNT(IF(COL_QRZCOM_QSO_UPLOAD_STATUS='Y' and DATE(COL_QRZCOM_QSO_UPLOAD_DATE)='$today_date',COL_QRZCOM_QSO_UPLOAD_STATUS,null)) as QRZ_Sent_today,
+	  COUNT(IF(COL_QRZCOM_QSO_DOWNLOAD_STATUS='Y' and DATE(COL_QRZCOM_QSO_DOWNLOAD_DATE)='$today_date',COL_QRZCOM_QSO_DOWNLOAD_STATUS,null)) as QRZ_Received_today
+	", FALSE);
       $this->db->where_in('station_id', $logbooks_locations_array);
 
       if ($query = $this->db->get($this->config->item('table_name'))) {
-        $this->db->last_query();
-        foreach ($query->result() as $row) {
-          $QSLBreakdown['QSL_Sent'] = $row->QSL_Sent;
-          $QSLBreakdown['QSL_Received'] =  $row->QSL_Received;
-          $QSLBreakdown['QSL_Requested'] =  $row->QSL_Requested;
-          $QSLBreakdown['eQSL_Sent'] =  $row->eQSL_Sent;
-          $QSLBreakdown['eQSL_Received'] =  $row->eQSL_Received;
-          $QSLBreakdown['LoTW_Sent'] =  $row->LoTW_Sent;
-          $QSLBreakdown['LoTW_Received'] =  $row->LoTW_Received;
-          $QSLBreakdown['QRZ_Sent'] =  $row->QRZ_Sent;
-          $QSLBreakdown['QRZ_Received'] =  $row->QRZ_Received;
-          $QSLBreakdown['QSL_Sent_today'] = $row->QSL_Sent_today;
-          $QSLBreakdown['QSL_Received_today'] =  $row->QSL_Received_today;
-          $QSLBreakdown['QSL_Requested_today'] =  $row->QSL_Requested_today;
-          $QSLBreakdown['eQSL_Sent_today'] =  $row->eQSL_Sent_today;
-          $QSLBreakdown['eQSL_Received_today'] =  $row->eQSL_Received_today;
-          $QSLBreakdown['LoTW_Sent_today'] =  $row->LoTW_Sent_today;
-          $QSLBreakdown['LoTW_Received_today'] =  $row->LoTW_Received_today;
-          $QSLBreakdown['QRZ_Sent_today'] =  $row->QRZ_Sent_today;
-          $QSLBreakdown['QRZ_Received_today'] =  $row->QRZ_Received_today;
+        if ($query->num_rows() > 0) {
+          $row = $query->row();
+          return array(
+            'QSL_Sent' => (int)$row->QSL_Sent,
+            'QSL_Received' => (int)$row->QSL_Received,
+            'QSL_Requested' => (int)$row->QSL_Requested,
+            'eQSL_Sent' => (int)$row->eQSL_Sent,
+            'eQSL_Received' => (int)$row->eQSL_Received,
+            'LoTW_Sent' => (int)$row->LoTW_Sent,
+            'LoTW_Received' => (int)$row->LoTW_Received,
+            'QRZ_Sent' => (int)$row->QRZ_Sent,
+            'QRZ_Received' => (int)$row->QRZ_Received,
+            'QSL_Sent_today' => (int)$row->QSL_Sent_today,
+            'QSL_Received_today' => (int)$row->QSL_Received_today,
+            'QSL_Requested_today' => (int)$row->QSL_Requested_today,
+            'eQSL_Sent_today' => (int)$row->eQSL_Sent_today,
+            'eQSL_Received_today' => (int)$row->eQSL_Received_today,
+            'LoTW_Sent_today' => (int)$row->LoTW_Sent_today,
+            'LoTW_Received_today' => (int)$row->LoTW_Received_today,
+            'QRZ_Sent_today' => (int)$row->QRZ_Sent_today,
+            'QRZ_Received_today' => (int)$row->QRZ_Received_today
+          );
         }
-
-        return $QSLBreakdown;
-      } else {
-        $QSLBreakdown['QSL_Sent'] = 0;
-        $QSLBreakdown['QSL_Received'] =  0;
-        $QSLBreakdown['QSL_Requested'] =  0;
-        $QSLBreakdown['eQSL_Sent'] =  0;
-        $QSLBreakdown['eQSL_Received'] =  0;
-        $QSLBreakdown['LoTW_Sent'] =  0;
-        $QSLBreakdown['LoTW_Received'] = 0;
-        $QSLBreakdown['QRZ_Sent'] = 0;
-        $QSLBreakdown['QRZ_Received'] = 0;
-        $QSLBreakdown['QSL_Sent_today'] = 0;
-        $QSLBreakdown['QSL_Received_today'] =  0;
-        $QSLBreakdown['QSL_Requested_today'] =  0;
-        $QSLBreakdown['eQSL_Sent_today'] =  0;
-        $QSLBreakdown['eQSL_Received_today'] =  0;
-        $QSLBreakdown['LoTW_Sent_today'] =  0;
-        $QSLBreakdown['LoTW_Received_today'] = 0;
-        $QSLBreakdown['QRZ_Sent_today'] = 0;
-        $QSLBreakdown['QRZ_Received_today'] = 0;
-
-        return $QSLBreakdown;
       }
-    } else {
-      $QSLBreakdown['QSL_Sent'] = 0;
-      $QSLBreakdown['QSL_Received'] =  0;
-      $QSLBreakdown['QSL_Requested'] =  0;
-      $QSLBreakdown['eQSL_Sent'] =  0;
-      $QSLBreakdown['eQSL_Received'] =  0;
-      $QSLBreakdown['LoTW_Sent'] =  0;
-      $QSLBreakdown['LoTW_Received'] = 0;
-      $QSLBreakdown['QRZ_Sent'] = 0;
-      $QSLBreakdown['QRZ_Received'] = 0;
-      $QSLBreakdown['QSL_Sent_today'] = 0;
-      $QSLBreakdown['QSL_Received_today'] =  0;
-      $QSLBreakdown['QSL_Requested_today'] =  0;
-      $QSLBreakdown['eQSL_Sent_today'] =  0;
-      $QSLBreakdown['eQSL_Received_today'] =  0;
-      $QSLBreakdown['LoTW_Sent_today'] =  0;
-      $QSLBreakdown['LoTW_Received_today'] = 0;
-      $QSLBreakdown['QRZ_Sent_today'] = 0;
-      $QSLBreakdown['QRZ_Received_today'] = 0;
 
-      return $QSLBreakdown;
+      // Return default values if no results
+      return array(
+        'QSL_Sent' => 0,
+        'QSL_Received' => 0,
+        'QSL_Requested' => 0,
+        'eQSL_Sent' => 0,
+        'eQSL_Received' => 0,
+        'LoTW_Sent' => 0,
+        'LoTW_Received' => 0,
+        'QRZ_Sent' => 0,
+        'QRZ_Received' => 0,
+        'QSL_Sent_today' => 0,
+        'QSL_Received_today' => 0,
+        'QSL_Requested_today' => 0,
+        'eQSL_Sent_today' => 0,
+        'eQSL_Received_today' => 0,
+        'LoTW_Sent_today' => 0,
+        'LoTW_Received_today' => 0,
+        'QRZ_Sent_today' => 0,
+        'QRZ_Received_today' => 0
+      );
+    } else {
+      return array(
+        'QSL_Sent' => 0,
+        'QSL_Received' => 0,
+        'QSL_Requested' => 0,
+        'eQSL_Sent' => 0,
+        'eQSL_Received' => 0,
+        'LoTW_Sent' => 0,
+        'LoTW_Received' => 0,
+        'QRZ_Sent' => 0,
+        'QRZ_Received' => 0,
+        'QSL_Sent_today' => 0,
+        'QSL_Received_today' => 0,
+        'QSL_Requested_today' => 0,
+        'eQSL_Sent_today' => 0,
+        'eQSL_Received_today' => 0,
+        'LoTW_Sent_today' => 0,
+        'LoTW_Received_today' => 0,
+        'QRZ_Sent_today' => 0,
+        'QRZ_Received_today' => 0
+      );
     }
   }
 
@@ -2984,6 +3003,54 @@ class Logbook_model extends CI_Model
       $CountriesBreakdown['Countries_Worked_LOTW'] = 0;
       return $CountriesBreakdown;
     }
+  }
+
+  // Consolidated method to get all country statistics in one query
+  function get_countries_statistics_consolidated($StationLocationsArray = null)
+  {
+    if ($StationLocationsArray == null) {
+      $CI = &get_instance();
+      $CI->load->model('logbooks_model');
+      $logbooks_locations_array = $CI->logbooks_model->list_logbook_relationships($this->session->userdata('active_station_logbook'));
+    } else {
+      $logbooks_locations_array = $StationLocationsArray;
+    }
+
+    if (!empty($logbooks_locations_array)) {
+      // Get both confirmed countries and current countries in one query
+      $this->db->select('
+        COUNT(DISTINCT COL_COUNTRY) as Countries_Worked,
+        COUNT(DISTINCT IF(COL_QSL_RCVD = "Y", COL_COUNTRY, NULL)) as Countries_Worked_QSL,
+        COUNT(DISTINCT IF(COL_EQSL_QSL_RCVD = "Y", COL_COUNTRY, NULL)) as Countries_Worked_EQSL,
+        COUNT(DISTINCT IF(COL_LOTW_QSL_RCVD = "Y", COL_COUNTRY, NULL)) as Countries_Worked_LOTW,
+        COUNT(DISTINCT IF(dxcc_entities.end IS NULL, COL_COUNTRY, NULL)) as Countries_Current
+      ');
+      $this->db->join('dxcc_entities', 'dxcc_entities.adif = ' . $this->config->item('table_name') . '.col_dxcc', 'left');
+      $this->db->where_in('station_id', $logbooks_locations_array);
+      $this->db->where('COL_COUNTRY !=', 'Invalid');
+      $this->db->where('COL_DXCC >', '0');
+
+      if ($query = $this->db->get($this->config->item('table_name'))) {
+        if ($query->num_rows() > 0) {
+          $row = $query->row();
+          return array(
+            'Countries_Worked' => $row->Countries_Worked,
+            'Countries_Worked_QSL' => $row->Countries_Worked_QSL,
+            'Countries_Worked_EQSL' => $row->Countries_Worked_EQSL,
+            'Countries_Worked_LOTW' => $row->Countries_Worked_LOTW,
+            'Countries_Current' => $row->Countries_Current
+          );
+        }
+      }
+    }
+
+    return array(
+      'Countries_Worked' => 0,
+      'Countries_Worked_QSL' => 0,
+      'Countries_Worked_EQSL' => 0,
+      'Countries_Worked_LOTW' => 0,
+      'Countries_Current' => 0
+    );
   }
 
   /* Return total number of countries confirmed with paper QSL */
@@ -4342,13 +4409,13 @@ class Logbook_model extends CI_Model
 
   public function get_entity($dxcc)
   {
-      $sql = "SELECT name, cqz, lat, `long` FROM dxcc_entities WHERE adif = ?";
-      $query = $this->db->query($sql, array($dxcc));
-  
-      if ($query->num_rows() > 0) {
-          return $query->row_array();
-      }
-      return '';
+    $sql = "SELECT name, cqz, lat, `long` FROM dxcc_entities WHERE adif = ?";
+    $query = $this->db->query($sql, array($dxcc));
+
+    if ($query->num_rows() > 0) {
+      return $query->row_array();
+    }
+    return '';
   }
 
   /*
@@ -4439,37 +4506,37 @@ class Logbook_model extends CI_Model
       foreach ($r->result_array() as $row) {
         $callsign = $row['COL_CALL'];
         if ($this->session->userdata('callbook_type') == "QRZ") {
-					// Lookup using QRZ
-					$this->load->library('qrz');
+          // Lookup using QRZ
+          $this->load->library('qrz');
 
-					// Load the encryption library
-					$this->load->library('encryption');
+          // Load the encryption library
+          $this->load->library('encryption');
 
-					// Decrypt the password
-					$decrypted_password = $this->encryption->decrypt($this->session->userdata('callbook_password'));
+          // Decrypt the password
+          $decrypted_password = $this->encryption->decrypt($this->session->userdata('callbook_password'));
 
-					if(!$this->session->userdata('qrz_session_key')) {
-						$qrz_session_key = $this->qrz->session($this->session->userdata('callbook_username'), $decrypted_password);
-						$this->session->set_userdata('qrz_session_key', $qrz_session_key);
-					}
+          if (!$this->session->userdata('qrz_session_key')) {
+            $qrz_session_key = $this->qrz->session($this->session->userdata('callbook_username'), $decrypted_password);
+            $this->session->set_userdata('qrz_session_key', $qrz_session_key);
+          }
 
           $callbook = $this->qrz->search($callsign, $this->session->userdata('qrz_session_key'));
         }
 
         if ($this->session->userdata('callbook_type') == "HamQTH") {
-					// Load the HamQTH library
-					$this->load->library('hamqth');
+          // Load the HamQTH library
+          $this->load->library('hamqth');
 
-					// Load the encryption library
-					$this->load->library('encryption');
+          // Load the encryption library
+          $this->load->library('encryption');
 
-					// Decrypt the password
-					$decrypted_password = $this->encryption->decrypt($this->session->userdata('callbook_password'));
-					
-					if(!$this->session->userdata('hamqth_session_key')) {
-						$hamqth_session_key = $this->hamqth->session($this->session->userdata('callbook_username'), $decrypted_password);
-						$this->session->set_userdata('hamqth_session_key', $hamqth_session_key);
-					}
+          // Decrypt the password
+          $decrypted_password = $this->encryption->decrypt($this->session->userdata('callbook_password'));
+
+          if (!$this->session->userdata('hamqth_session_key')) {
+            $hamqth_session_key = $this->hamqth->session($this->session->userdata('callbook_username'), $decrypted_password);
+            $this->session->set_userdata('hamqth_session_key', $hamqth_session_key);
+          }
 
           $callbook = $this->hamqth->search($callsign, $this->session->userdata('hamqth_session_key'));
 
@@ -4591,7 +4658,7 @@ class Logbook_model extends CI_Model
         // Decrypt the password
         $decrypted_password = $this->encryption->decrypt($this->session->userdata('callbook_password'));
 
-        if(!$this->session->userdata('qrz_session_key')) {
+        if (!$this->session->userdata('qrz_session_key')) {
           $qrz_session_key = $this->qrz->session($this->session->userdata('callbook_username'), $decrypted_password);
           $this->session->set_userdata('qrz_session_key', $qrz_session_key);
         }
@@ -4619,8 +4686,8 @@ class Logbook_model extends CI_Model
 
         // Decrypt the password
         $decrypted_password = $this->encryption->decrypt($this->session->userdata('callbook_password'));
-        
-        if(!$this->session->userdata('hamqth_session_key')) {
+
+        if (!$this->session->userdata('hamqth_session_key')) {
           $hamqth_session_key = $this->hamqth->session($this->session->userdata('callbook_username'), $decrypted_password);
           $this->session->set_userdata('hamqth_session_key', $hamqth_session_key);
         }
@@ -4795,19 +4862,20 @@ class Logbook_model extends CI_Model
 
   // [JSON PLOT] return array for plot qso for map //
   public function get_plot_array_for_map($qsos_result, $isVisitor = false)
-{
+  {
     $this->load->library('qra');
     $CI = &get_instance();
     $CI->load->library('DxccFlag');
-    
+
     $json["markers"] = array();
-    
+
     foreach ($qsos_result as $row) {
       $plot = array('lat' => 0, 'lng' => 0, 'html' => '', 'label' => '', 'flag' => '', 'confirmed' => 'N');
-      
+
       $plot['label'] = $row->COL_CALL;
+      $plot['callsign'] = $row->COL_CALL;
       $flag = strtolower($CI->dxccflag->getISO($row->COL_DXCC));
-      $plot['flag'] = '<span data-bs-toggle="tooltip" title="' . ucwords(strtolower(($row->name==null?"- NONE -":$row->name))) . '"><span class="fi fi-' . $flag .'"></span></span> ';
+      $plot['flag'] = '<span data-bs-toggle="tooltip" title="' . ucwords(strtolower(($row->name == null ? "- NONE -" : $row->name))) . '"><span class="fi fi-' . $flag . '"></span></span> ';
       $plot['html'] = ($row->COL_GRIDSQUARE != null ?  "<b>Grid:</b> " . $row->COL_GRIDSQUARE . "<br />" : "");
       $plot['html'] .= "<b>Date/Time:</b> " . $row->COL_TIME_ON . "<br />";
       $plot['html'] .= ($row->COL_SAT_NAME != null) ? ("<b>SAT:</b> " . $row->COL_SAT_NAME . "<br />") : ("<b>Band:</b> " . $row->COL_BAND . " ");
@@ -4868,12 +4936,13 @@ class Logbook_model extends CI_Model
   }
 
   /**
-  * Processes a batch of QRZ ADIF records for efficient database updates.
-  *
-  * @param array $batch_data Array of records from the ADIF file.
-  * @return string HTML table rows for the processed batch.
-  */
-  public function process_qrz_batch($batch_data) {
+   * Processes a batch of QRZ ADIF records for efficient database updates.
+   *
+   * @param array $batch_data Array of records from the ADIF file.
+   * @return string HTML table rows for the processed batch.
+   */
+  public function process_qrz_batch($batch_data)
+  {
     $table = "";
     $update_batch_data = [];
     $this->load->model('Stations');
@@ -4883,14 +4952,14 @@ class Logbook_model extends CI_Model
     }
 
     // Step 1: Build WHERE clause for fetching potential matches
-    $this->db->select($this->config->item('table_name').'.COL_PRIMARY_KEY, '.$this->config->item('table_name').'.COL_CALL, '.$this->config->item('table_name').'.COL_TIME_ON, '.$this->config->item('table_name').'.COL_BAND, '.$this->config->item('table_name').'.COL_MODE, ');
+    $this->db->select($this->config->item('table_name') . '.COL_PRIMARY_KEY, ' . $this->config->item('table_name') . '.COL_CALL, ' . $this->config->item('table_name') . '.COL_TIME_ON, ' . $this->config->item('table_name') . '.COL_BAND, ' . $this->config->item('table_name') . '.COL_MODE, ');
     $this->db->from($this->config->item('table_name'));
     $this->db->group_start(); // Start grouping OR conditions
     foreach ($batch_data as $record) {
       $this->db->or_group_start(); // Start group for this record's AND conditions
-      $this->db->where($this->config->item('table_name').'.COL_CALL', $record['call']);
-      $this->db->like($this->config->item('table_name').'.COL_TIME_ON', $record['time_on'], 'after');
-      $this->db->where($this->config->item('table_name').'.COL_BAND', $record['band']);
+      $this->db->where($this->config->item('table_name') . '.COL_CALL', $record['call']);
+      $this->db->like($this->config->item('table_name') . '.COL_TIME_ON', $record['time_on'], 'after');
+      $this->db->where($this->config->item('table_name') . '.COL_BAND', $record['band']);
       $this->db->group_end(); // End group for this record's AND conditions
     }
     $this->db->group_end(); // End grouping OR conditions
@@ -4902,7 +4971,7 @@ class Logbook_model extends CI_Model
     // Index DB results for faster lookup
     $indexed_results = [];
     foreach ($db_results as $row) {
-	  $time = substr($row['COL_TIME_ON'], 0, 16);
+      $time = substr($row['COL_TIME_ON'], 0, 16);
       $key = $row['COL_CALL'] . '|' . $time . '|' . $row['COL_BAND'];
       $indexed_results[$key] = $row['COL_PRIMARY_KEY'];
     }
@@ -4951,11 +5020,12 @@ class Logbook_model extends CI_Model
    * @param string $user_format The user's preferred date format (e.g., 'd/m/Y', 'Y-m-d')
    * @return string Returns date in Y-m-d format for database storage, or original input if parsing fails
    */
-  private function parse_user_date($date_input, $user_format = null) {
+  private function parse_user_date($date_input, $user_format = null)
+  {
     if (empty($date_input)) {
       return $date_input;
     }
-    
+
     // If no user format provided, try to get it from session or config
     if ($user_format === null) {
       if ($this->session->userdata('user_date_format')) {
@@ -4964,21 +5034,78 @@ class Logbook_model extends CI_Model
         $user_format = $this->config->item('qso_date_format');
       }
     }
-    
+
     // Try to parse with the user's format first
     $date = DateTime::createFromFormat($user_format, $date_input);
     if ($date !== false) {
       return $date->format('Y-m-d');
     }
-    
+
     // Fallback to strtotime for formats it can handle (mostly Y-m-d, m/d/Y, etc.)
     $timestamp = strtotime($date_input);
     if ($timestamp !== false) {
       return date('Y-m-d', $timestamp);
     }
-    
+
     // If all parsing fails, return the original input and let the database handle it
     return $date_input;
+  }
+
+  /* Consolidated QSO Statistics - Get all basic counts in a single query */
+  function get_qso_statistics_consolidated($StationLocationsArray = null)
+  {
+    if ($StationLocationsArray == null) {
+      $this->load->model('logbooks_model');
+      $logbooks_locations_array = $this->logbooks_model->list_logbook_relationships($this->session->userdata('active_station_logbook'));
+    } else {
+      $logbooks_locations_array = $StationLocationsArray;
+    }
+
+    if (!$logbooks_locations_array) {
+      return array(
+        'total_qsos' => 0,
+        'todays_qsos' => 0,
+        'month_qsos' => 0,
+        'year_qsos' => 0
+      );
+    }
+
+    // Calculate date ranges
+    $today_morning = date('Y-m-d 00:00:00');
+    $today_night = date('Y-m-d 23:59:59');
+    $month_morning = date('Y-m-01 00:00:00');
+    $date = new DateTime('now');
+    $date->modify('last day of this month');
+    $month_night = $date->format('Y-m-d') . " 23:59:59";
+    $year_morning = date('Y-01-01 00:00:00');
+    $year_night = date('Y-12-31 23:59:59');
+
+    // Build the consolidated query
+    $this->db->select("
+      COUNT(*) as total_qsos,
+      COUNT(CASE WHEN COL_TIME_ON >= '$today_morning' AND COL_TIME_ON <= '$today_night' THEN 1 END) as todays_qsos,
+      COUNT(CASE WHEN COL_TIME_ON >= '$month_morning' AND COL_TIME_ON <= '$month_night' THEN 1 END) as month_qsos,
+      COUNT(CASE WHEN COL_TIME_ON >= '$year_morning' AND COL_TIME_ON <= '$year_night' THEN 1 END) as year_qsos
+    ", FALSE);
+    $this->db->where_in('station_id', $logbooks_locations_array);
+    $query = $this->db->get($this->config->item('table_name'));
+
+    if ($query->num_rows() > 0) {
+      $row = $query->row();
+      return array(
+        'total_qsos' => (int)$row->total_qsos,
+        'todays_qsos' => (int)$row->todays_qsos,
+        'month_qsos' => (int)$row->month_qsos,
+        'year_qsos' => (int)$row->year_qsos
+      );
+    }
+
+    return array(
+      'total_qsos' => 0,
+      'todays_qsos' => 0,
+      'month_qsos' => 0,
+      'year_qsos' => 0
+    );
   }
 }
 
