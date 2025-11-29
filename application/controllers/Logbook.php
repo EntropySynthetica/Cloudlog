@@ -1389,6 +1389,9 @@ class Logbook extends CI_Controller
 			case 'Operator':
 				$ret .= '<th>' . $ctx->lang->line('gen_hamradio_operator') . '</th>';
 				break;
+			case 'Comment': 
+				$ret.= '<th>'.$ctx->lang->line('gen_hamradio_comment').'</th>'; 
+				break;
 		}
 		return $ret;
 	}
@@ -1486,6 +1489,9 @@ class Logbook extends CI_Controller
 				break;
 			case 'Operator':
 				$ret .= '<td>' . ($row->COL_OPERATOR) . '</td>';
+				break;
+			case 'Comment': 
+				$ret.= '<td>' . ($row->COL_COMMENT) . '</td>'; 
 				break;
 		}
 		return $ret;
