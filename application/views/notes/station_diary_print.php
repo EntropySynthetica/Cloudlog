@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -85,7 +86,7 @@
 			color: #666;
 			font-size: 0.85rem;
 			margin-top: 0.75rem;
-            padding-top: 0.5rem;
+			padding-top: 0.5rem;
 			border-top: 1px solid #ccc;
 		}
 
@@ -158,6 +159,7 @@
 		}
 	</style>
 </head>
+
 <body>
 	<div class="diary-container">
 		<div class="print-button">
@@ -177,14 +179,14 @@
 			</div>
 
 			<div class="diary-entries">
-				<?php 
+				<?php
 				foreach ($diary_entries->result() as $entry) {
-					$entry_date = (is_null($entry->created_at) || $entry->created_at === '' || $entry->created_at === '0000-00-00 00:00:00') 
-						? null 
+					$entry_date = (is_null($entry->created_at) || $entry->created_at === '' || $entry->created_at === '0000-00-00 00:00:00')
+						? null
 						: date('l, F j, Y', strtotime($entry->created_at));
-					
-					$entry_time = (is_null($entry->created_at) || $entry->created_at === '' || $entry->created_at === '0000-00-00 00:00:00') 
-						? null 
+
+					$entry_time = (is_null($entry->created_at) || $entry->created_at === '' || $entry->created_at === '0000-00-00 00:00:00')
+						? null
 						: date('g:i A', strtotime($entry->created_at));
 				?>
 					<div class="diary-entry">
@@ -213,4 +215,5 @@
 		<?php } ?>
 	</div>
 </body>
+
 </html>
