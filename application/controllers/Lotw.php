@@ -527,6 +527,7 @@ class Lotw extends CI_Controller {
 			$table = "";
 			$batch_updates = array(); // Collect all updates for batch processing
 			$table_rows = array(); // Collect table rows for later rendering
+			$found_count = 0;
 			
 			// First pass: collect all records for batch processing
 			while($record = $this->adif_parser->get_record())
@@ -551,6 +552,7 @@ class Lotw extends CI_Controller {
 				$status = $this->logbook_model->import_check($time_on, $record['call'], $record['band'], $record['mode'], $record['station_callsign']);
 
 				if($status[0] == "Found") {
+					$found_count++;
 					$state = isset($record['state']) ? $record['state'] : "";
 					$qsl_gridsquare = isset($record['gridsquare']) ? $record['gridsquare'] : "";
 					$qsl_vucc_grids = isset($record['vucc_grids']) ? $record['vucc_grids'] : "";
@@ -607,7 +609,8 @@ class Lotw extends CI_Controller {
 			$lotw_status = "No updates";
 			if (!empty($batch_updates)) {
 				$result = $this->logbook_model->lotw_update_batch($batch_updates);
-				$lotw_status = "Batch Updated: {$result['updated']} QSOs, {$result['gridsquare_updated']} gridsquares";
+				$already_confirmed = max(0, $found_count - $result['updated']);
+				$lotw_status = "Found: {$found_count} QSOs, Updated: {$result['updated']} QSOs, Already confirmed: {$already_confirmed} QSOs, Gridsquares updated: {$result['gridsquare_updated']}";
 				log_message('info', 'LoTW Download: ' . $lotw_status);
 			}
 			
