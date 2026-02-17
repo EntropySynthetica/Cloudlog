@@ -1184,6 +1184,18 @@ class Logbook_model extends CI_Model
       $sat_name = 'MESAT1';
     } else if ($data['COL_SAT_NAME'] == 'SONATE-2') {
       $sat_name = 'SONATE-2 APRS';
+    } else if ($data['COL_SAT_NAME'] == 'QMR-KWT-2') {
+      $sat_name = 'QMR-KWT-2_(RS95S)';
+    } else if ($data['COL_SAT_NAME'] == 'Lobachevsky') {
+      $sat_name = 'Lobachevsky_(RS83S)';
+    } else if ($data['COL_SAT_NAME'] == 'BOTAN') {
+      if ($data['COL_MODE'] == 'PKT') {
+        $sat_name = 'BOTAN APRS';
+      }
+    } else if ($data['COL_SAT_NAME'] == 'SONATE-2') {
+      if ($data['COL_MODE'] == 'PKT') {
+        $sat_name = 'SONATE-2 APRS';
+      }
     } else if ($data['COL_SAT_NAME'] == 'QO-100') {
       $sat_name = 'QO-100_NB';
     } else if ($data['COL_SAT_NAME'] == 'AO-92') {
