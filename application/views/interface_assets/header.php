@@ -171,7 +171,7 @@
 								<div class="dropdown-divider"></div>
 								<?php } ?>
 								<?php if ($user_awards->gridmaster_dl == 1 || $user_awards->gridmaster_lx == 1 || $user_awards->gridmaster_ja == 1 || $user_awards->gridmaster_us == 1 || $user_awards->gridmaster_uk == 1) { ?>
-								<div class="nav-item dropdown dropdown-submenu" aria-labelledby="navbarDropdown"><a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-th"></i> Gridmaster</a>
+								<div class="nav-item dropdown dropdown-submenu dropdown-submenu-left" aria-labelledby="navbarDropdown"><a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-th"></i> Gridmaster</a>
 									<ul class="dropdown-menu">
 										<?php if ($user_awards->gridmaster_dl == 1) { ?>
 										<li><a class="dropdown-item" href="<?php echo site_url('awards/gridmaster/dl'); ?>"><i class="fas fa-th"></i> <?php echo lang('menu_dl_gridmaster'); ?></a></li>
@@ -381,7 +381,7 @@
 
 								<a class="dropdown-item" href="<?php echo site_url('adif'); ?>" title="Amateur Data Interchange Format (ADIF) import / export"><i class="fas fa-sync-alt"></i> <?php echo lang('menu_adif_import_export'); ?></a>
 
-								<div class="nav-item dropdown dropdown-submenu" aria-labelledby="navbarDropdown"><a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-file-export"></i> Other Export Options</a>
+								<div class="nav-item dropdown dropdown-submenu dropdown-submenu-left" aria-labelledby="navbarDropdown"><a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-file-export"></i> Other Export Options</a>
 									<ul class="dropdown-menu">
 										<a class="dropdown-item" href="<?php echo site_url('kmlexport'); ?>" title="KML Export for Google Earth"><i class="fas fa-map"></i> <?php echo lang('menu_kml_export'); ?></a>
 
@@ -393,7 +393,7 @@
 									</ul>
 								</div>
 								
-								<div class="nav-item dropdown dropdown-submenu" aria-labelledby="navbarDropdown"><a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-sync"></i> Third Party Logbooks</a>
+								<div class="nav-item dropdown dropdown-submenu dropdown-submenu-left" aria-labelledby="navbarDropdown"><a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-sync"></i> Third Party Logbooks</a>
 									<ul class="dropdown-menu">
 										<a class="dropdown-item" href="<?php echo site_url('lotw'); ?>" title="Synchronise with Logbook of the World (LoTW)"><i class="fas fa-sync"></i> <?php echo lang('menu_logbook_of_the_world'); ?></a>
 
