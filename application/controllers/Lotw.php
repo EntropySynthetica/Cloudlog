@@ -645,9 +645,9 @@ class Lotw extends CI_Controller {
 			if ($table != "")
 			{
 				$table .= "</table>";
+				$table .= '<div class="mt-2"><strong>LoTW Status:</strong> ' . $lotw_status . '</div>';
 				$data['lotw_table_headers'] = $tableheaders;
 				$data['lotw_table'] = $table;
-				$data['lotw_table'] .= '<div class="mt-2"><strong>LoTW Status:</strong> ' . $lotw_status . '</div>';
 		}
 
 		unlink($filepath);
