@@ -3623,7 +3623,13 @@ class Logbook_model extends CI_Model
     
     // Step 1: Build WHERE conditions to find all matching QSOs and their current upload status
     $match_conditions = array();
-    foreach ($records as $idx => $record) {
+    $primary_keys = array();
+    foreach ($records as $record) {
+      if (!empty($record['primary_key'])) {
+        $primary_keys[] = (int)$record['primary_key'];
+        continue;
+      }
+
       $match_conditions[] = sprintf(
         "(date_format(COL_TIME_ON, '%%Y-%%m-%%d %%H:%%i') = '%s' AND COL_CALL = '%s' AND COL_BAND = '%s' AND COL_STATION_CALLSIGN = '%s')",
         $this->db->escape_str($record['datetime']),
@@ -3631,6 +3637,19 @@ class Logbook_model extends CI_Model
         $this->db->escape_str($record['band']),
         $this->db->escape_str($record['station_callsign'])
       );
+    }
+
+    $where_parts = array();
+    if (!empty($primary_keys)) {
+      $where_parts[] = 'COL_PRIMARY_KEY IN (' . implode(',', array_unique($primary_keys)) . ')';
+    }
+    if (!empty($match_conditions)) {
+      $where_parts[] = '(' . implode(' OR ', $match_conditions) . ')';
+    }
+
+    if (empty($where_parts)) {
+      log_message('warning', 'LoTW batch update: No usable keys provided');
+      return array('updated' => 0, 'gridsquare_updated' => 0, 'errors' => 0);
     }
     
     // Step 2: Get all matching QSOs with their current upload status and gridsquare
@@ -3644,7 +3663,7 @@ class Logbook_model extends CI_Model
                    station_profile.station_id
             FROM {$table_name}
             LEFT JOIN station_profile ON {$table_name}.station_id = station_profile.station_id
-            WHERE (" . implode(' OR ', $match_conditions) . ")";
+            WHERE " . implode(' OR ', $where_parts);
     
     $query = $this->db->query($sql);
     
@@ -3655,7 +3674,9 @@ class Logbook_model extends CI_Model
     
     // Step 3: Build lookup map and batch update array
     $qso_map = array();
+    $qso_map_by_id = array();
     foreach ($query->result() as $qso) {
+      $qso_map_by_id[$qso->COL_PRIMARY_KEY] = $qso;
       $key = $qso->fmt_time . '|' . $qso->COL_CALL . '|' . $qso->COL_BAND . '|' . $qso->COL_STATION_CALLSIGN;
       $qso_map[$key] = $qso;
     }
@@ -3664,13 +3685,19 @@ class Logbook_model extends CI_Model
     $gridsquare_updates = array();
     
     foreach ($records as $record) {
-      $key = $record['datetime'] . '|' . $record['callsign'] . '|' . $record['band'] . '|' . $record['station_callsign'];
-      
-      if (!isset($qso_map[$key])) {
+      $qso = null;
+      if (!empty($record['primary_key']) && isset($qso_map_by_id[(int)$record['primary_key']])) {
+        $qso = $qso_map_by_id[(int)$record['primary_key']];
+      } else {
+        $key = $record['datetime'] . '|' . $record['callsign'] . '|' . $record['band'] . '|' . $record['station_callsign'];
+        if (isset($qso_map[$key])) {
+          $qso = $qso_map[$key];
+        }
+      }
+
+      if ($qso === null) {
         continue; // QSO not found in database
       }
-      
-      $qso = $qso_map[$key];
       
       // Skip if already updated with this exact status
       if ($qso->COL_LOTW_QSL_RCVD == $record['qsl_status']) {

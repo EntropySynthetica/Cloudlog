@@ -562,6 +562,7 @@ class Lotw extends CI_Controller {
 
 					// Add to batch update array
 					$batch_updates[] = array(
+						'primary_key' => $status[1],
 						'datetime' => $time_on,
 						'callsign' => $record['call'],
 						'band' => $record['band'],
