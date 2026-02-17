@@ -522,7 +522,6 @@ class Lotw extends CI_Controller {
 				$tableheaders .= "<td>Gridsquare</td>";
 				$tableheaders .= "<td>IOTA</td>";
 				$tableheaders .= "<td>Log Status</td>";
-				$tableheaders .= "<td>LoTW Status</td>";
 			$tableheaders .= "</tr>";
 
 			$table = "";
@@ -626,7 +625,6 @@ class Lotw extends CI_Controller {
 						$table .= "<td>".$row['gridsquare']."</td>";
 						$table .= "<td>".$row['iota']."</td>";
 						$table .= "<td>QSO Record: ".$row['status']."</td>";
-						$table .= "<td>LoTW Record: ".$lotw_status."</td>";
 					$table .= "</tr>";
 				} else {
 					$table .= "<tr>";
@@ -640,7 +638,6 @@ class Lotw extends CI_Controller {
 						$table .= "<td></td>";
 						$table .= "<td></td>";
 						$table .= "<td>QSO Record: ".$row['status']."</td>";
-						$table .= "<td></td>";
 					$table .= "</tr>";
 				}
 			}
@@ -650,6 +647,7 @@ class Lotw extends CI_Controller {
 				$table .= "</table>";
 				$data['lotw_table_headers'] = $tableheaders;
 				$data['lotw_table'] = $table;
+				$data['lotw_table'] .= '<div class="mt-2"><strong>LoTW Status:</strong> ' . $lotw_status . '</div>';
 		}
 
 		unlink($filepath);
