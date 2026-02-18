@@ -93,6 +93,7 @@ class Lotw extends CI_Controller {
 	|
 	| do_cert_upload is called from cert_upload form submit and handles uploading
 	| and processing of p12 files and storing the data into mysql
+	| Now supports HTMX requests for modal-based uploads
 	|
 	*/
 	public function do_cert_upload()
@@ -105,6 +106,9 @@ class Lotw extends CI_Controller {
 		if (!extension_loaded('openssl')) {
 			echo "You must install php OpenSSL for LoTW functions to work";
 		}
+
+		// Check if this is an HTMX request
+		$is_htmx = $this->input->get_request_header('HX-Request');
 
     	// create folder to store certs while processing
     	if (!file_exists('./uploads/lotw/certs')) {
@@ -119,17 +123,21 @@ class Lotw extends CI_Controller {
         if ( ! $this->upload->do_upload('userfile'))
         {
         	// Upload of P12 Failed
-            $error = array('error' => $this->upload->display_errors());
+            $error = $this->upload->display_errors();
 
-			// Load DXCC Countrys List
+			// If HTMX request, return just the error message
+			if($is_htmx) {
+				echo '<div class="alert alert-danger" role="alert">' . $error . '</div>';
+				return;
+			}
+
+			// Otherwise load the full form page
+			$data = array('error' => $error);
 			$data['dxcc_list'] = $this->dxcc->list();
-
-			// Set Page Title
 			$data['page_title'] = "Logbook of the World";
 
-			// Load Views
 			$this->load->view('interface_assets/header', $data);
-			$this->load->view('lotw_views/upload_cert', $error);
+			$this->load->view('lotw_views/upload_cert', $data);
 			$this->load->view('interface_assets/footer');
         }
         else
@@ -152,19 +160,27 @@ class Lotw extends CI_Controller {
         		$this->LotwCert->store_certificate($this->session->userdata('user_id'), $info['issued_callsign'], $info['dxcc-id'], $info['validFrom'], $info['validTo_Date'], $info['qso-first-date'], $info['qso-end-date'], $info['pem_key'], $info['general_cert']);
 
         		// Cert success flash message
-        		$this->session->set_flashdata('Success', $info['issued_callsign'].' Certificate Imported.');
+        		$success_msg = $info['issued_callsign'].' Certificate Imported.';
         	} else {
         		// Certificate is in the system time to update
 
 				$this->LotwCert->update_certificate($this->session->userdata('user_id'), $info['issued_callsign'], $info['dxcc-id'], $info['validFrom'], $info['validTo_Date'], $info['qso-first-date'], $info['qso-end-date'], $info['pem_key'], $info['general_cert']);
 
         		// Cert success flash message
-        		$this->session->set_flashdata('Success', $info['issued_callsign'].' Certificate Updated.');
-
+        		$success_msg = $info['issued_callsign'].' Certificate Updated.';
         	}
 
         	// p12 certificate processed time to delete the file
         	unlink($data['upload_data']['full_path']);
+
+			// If HTMX request, return just the success message
+			if($is_htmx) {
+				echo '<div class="alert alert-success" role="alert">' . $success_msg . '</div>';
+				return;
+			}
+
+			// Otherwise load the full page
+			$this->session->set_flashdata('Success', $success_msg);
 
 			// Get Array of the logged in users LoTW certs.
 			$data['lotw_cert_results'] = $this->LotwCert->lotw_certs($this->session->userdata('user_id'));
@@ -176,11 +192,30 @@ class Lotw extends CI_Controller {
 			$this->load->view('interface_assets/header', $data);
 			$this->load->view('lotw_views/index');
 			$this->load->view('interface_assets/footer');
-
-
-
         }
     }
+
+	/*
+	|--------------------------------------------------------------------------
+	| Function: cert_table_refresh
+	|--------------------------------------------------------------------------
+	|
+	| Returns the certificate table for HTMX refresh after upload
+	|
+	*/
+	public function cert_table_refresh() {
+		$this->load->model('user_model');
+		if(!$this->user_model->authorize(2)) { $this->session->set_flashdata('notice', 'You\'re not allowed to do that!'); redirect('dashboard'); }
+
+		// Load model
+		$this->load->model('LotwCert');
+
+		// Get Array of the logged in users LoTW certs.
+		$data['lotw_cert_results'] = $this->LotwCert->lotw_certs($this->session->userdata('user_id'));
+
+		// Load just the cert table partial
+		$this->load->view('lotw_views/cert_table', $data);
+	}
 
     /*
 	|--------------------------------------------------------------------------
