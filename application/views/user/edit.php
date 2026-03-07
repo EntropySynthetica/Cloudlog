@@ -391,6 +391,9 @@
 													<option value="Name" <?php if ($user_column1 == "Name") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_name'); ?></option>
+													<option value="Comment" <?php if ($user_column1 == "Comment") {
+																					echo " selected =\"selected\"";
+																				} ?>><?php echo lang('general_word_comment'); ?></option>
 													<option value="Flag" <?php if ($user_column1 == "Flag") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_flag'); ?></option>
@@ -448,6 +451,9 @@
 													<option value="Name" <?php if ($user_column2 == "Name") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_name'); ?></option>
+													<option value="Comment" <?php if ($user_column2 == "Comment") {
+																					echo " selected =\"selected\"";
+																				} ?>><?php echo lang('general_word_comment'); ?></option>
 													<option value="Flag" <?php if ($user_column2 == "Flag") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_flag'); ?></option>
@@ -505,6 +511,9 @@
 													<option value="Name" <?php if ($user_column3 == "Name") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_name'); ?></option>
+													<option value="Comment" <?php if ($user_column3 == "Comment") {
+																					echo " selected =\"selected\"";
+																				} ?>><?php echo lang('general_word_comment'); ?></option>
 													<option value="Flag" <?php if ($user_column3 == "Flag") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_flag'); ?></option>
@@ -562,6 +571,9 @@
 													<option value="Name" <?php if ($user_column4 == "Name") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_name'); ?></option>
+													<option value="Comment" <?php if ($user_column4 == "Comment") {
+																					echo " selected =\"selected\"";
+																				} ?>><?php echo lang('general_word_comment'); ?></option>
 													<option value="Flag" <?php if ($user_column4 == "Flag") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_flag'); ?></option>
@@ -625,6 +637,9 @@
 													<option value="Location" <?php if ($user_column5 == "Location") {
 																					echo " selected =\"selected\"";
 																				} ?>><?php echo lang('cloudlog_station_profile'); ?></option>
+													<option value="Comment" <?php if ($user_column5 == "Comment") {
+																					echo " selected =\"selected\"";
+																				} ?>><?php echo lang('general_word_comment'); ?></option>
 													<option value="Flag" <?php if ($user_column5 == "Flag") {
 																				echo " selected =\"selected\"";
 																			} ?>><?php echo lang('general_word_flag'); ?></option>
