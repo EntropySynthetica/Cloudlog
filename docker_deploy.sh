@@ -1,3 +1,5 @@
+# Script to deploy Cloudlog using Docker for local development
+
 docker network create cloudlog
 
 docker run --name mysql-server \
@@ -11,12 +13,12 @@ docker run --name mysql-server \
 
 docker run --name cloudlog \
   --network cloudlog \
-  -e BASEURL=https://172.18.25.6:8443 \
+  -e BASEURL=https://172.18.25.8:8443 \
   -e DBDATABASE=cloudlog \
   -e DBHOSTNAME=mysql-server \
   -e DBUSERNAME=cloudlog \
   -e DBPASSWORD=cloudlogpass \
   -e MYGRID=EN16nu \
   -p 8443:443 \
-  -p 8080:80 \
+  -p 8088:80 \
   -d cloudlog:dev
