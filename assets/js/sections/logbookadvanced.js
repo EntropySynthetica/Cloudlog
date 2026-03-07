@@ -105,6 +105,9 @@ function updateRow(qso) {
 	if ( (user_options.operator) && (user_options.operator.show == "true")){
 		cells.eq(c++).html(qso.operator);
 	}
+	if ( (user_options.comment) && (user_options.comment.show == "true")){
+		cells.eq(c++).text(qso.comment);
+	}
 
 	$('[data-bs-toggle="tooltip"]').tooltip();
 	return row;
@@ -209,6 +212,9 @@ function loadQSOTable(rows) {
 		}
 		if (user_options.operator.show == "true"){
 			data.push(qso.operator);
+		}
+		if ( (user_options.comment) && (user_options.comment.show == "true")){
+			data.push(qso.comment);
 		}
 
 		let createdRow = table.row.add(data).index();
@@ -1332,6 +1338,7 @@ function loadMap(data) {
 				pota: $('input[name="pota"]').is(':checked') ? true : false,
 				operator: $('input[name="operator"]').is(':checked') ? true : false,
 				stationLocation: $('input[name="stationLocation"]').is(':checked') ? true : false,
+				comment: $('input[name="comment"]').is(':checked') ? true : false,
 			},
 			success: function(data) {
 				$('#saveButton').prop("disabled", false);

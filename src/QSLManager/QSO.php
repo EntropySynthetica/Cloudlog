@@ -68,6 +68,7 @@ class QSO
 	private string $lotw_hint;
 	private string $operator;
 	private string $stationLocation;
+	private string $comment;
 
 	/**
 	 * @param array $data Does no validation, it's assumed to be a row from the database in array format
@@ -209,6 +210,7 @@ class QSO
 		$this->lotw_hint = $this->getLotwHint($data['lastupload'] ?? null);
 		$this->operator = ($data['COL_OPERATOR'] === null) ? '' :$data['COL_OPERATOR'];
 		$this->stationLocation = (($data['station_profile_name'] ?? null) === null) ? '' : $data['station_profile_name'];
+		$this->comment = ($data['COL_COMMENT'] ?? null) === null ? '' : $data['COL_COMMENT'];
 	}
 
 	/**
@@ -825,6 +827,7 @@ class QSO
 			'lastupload' => $this->lastupload,
 			'lotw_hint' => $this->lotw_hint,
 			'stationLocation' => $this->stationLocation,
+			'comment' => $this->comment,
 		];
 	}
 
