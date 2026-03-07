@@ -210,7 +210,7 @@ class QSO
 		$this->lotw_hint = $this->getLotwHint($data['lastupload'] ?? null);
 		$this->operator = ($data['COL_OPERATOR'] === null) ? '' :$data['COL_OPERATOR'];
 		$this->stationLocation = (($data['station_profile_name'] ?? null) === null) ? '' : $data['station_profile_name'];
-		$this->comment = ($data['COL_COMMENT'] ?? null) === null ? '' : $data['COL_COMMENT'];
+		$this->comment = (($data['COL_COMMENT'] ?? null) === null) ? '' : $data['COL_COMMENT'];
 	}
 
 	/**

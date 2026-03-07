@@ -213,7 +213,7 @@ function loadQSOTable(rows) {
 		if (user_options.operator.show == "true"){
 			data.push(qso.operator);
 		}
-		if ( (user_options.comment) && (user_options.comment.show == "true")){
+		if (user_options.comment.show == "true"){
 			data.push(qso.comment);
 		}
 
