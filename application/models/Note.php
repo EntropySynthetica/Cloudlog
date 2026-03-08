@@ -126,6 +126,9 @@ class Note extends CI_Model {
 			'is_public' => $is_public,
 			'include_qso_summary' => $include_qso_summary,
 			'logbook_id' => $logbook_id ? xss_clean($logbook_id) : NULL,
+			'qso_date_start' => $this->input->post('qso_date_start') ? xss_clean($this->input->post('qso_date_start')) : NULL,
+			'qso_date_end' => $this->input->post('qso_date_end') ? xss_clean($this->input->post('qso_date_end')) : NULL,
+			'qso_satellite_only' => $this->input->post('qso_satellite_only') ? 1 : 0,
 		);
 
 		$this->db->insert('notes', $data);
@@ -167,6 +170,9 @@ class Note extends CI_Model {
 			'is_public' => $is_public,
 			'include_qso_summary' => $include_qso_summary,
 			'logbook_id' => $logbook_id ? xss_clean($logbook_id) : NULL,
+			'qso_date_start' => $this->input->post('qso_date_start') ? xss_clean($this->input->post('qso_date_start')) : NULL,
+			'qso_date_end' => $this->input->post('qso_date_end') ? xss_clean($this->input->post('qso_date_end')) : NULL,
+			'qso_satellite_only' => $this->input->post('qso_satellite_only') ? 1 : 0,
 		);
 
 		$created_at = trim($this->input->post('created_at'));
@@ -371,8 +377,20 @@ class Note extends CI_Model {
 			$entry->qso_list = array();
 			if ((int)$entry->include_qso_summary === 1) {
 				$entryDate = date('Y-m-d', strtotime($entry->created_at));
-				$entry->qso_summary = $this->get_qso_summary_for_date($user_id, $entryDate, $entry->logbook_id);
-				$entry->qso_list = $this->get_qso_list_for_date($user_id, $entryDate, $entry->logbook_id);
+				
+				// Determine date range for filtering
+				$dateStart = !empty($entry->qso_date_start) ? $entry->qso_date_start : $entryDate;
+				$dateEnd = !empty($entry->qso_date_end) ? $entry->qso_date_end : $entryDate;
+				$satOnly = (int)$entry->qso_satellite_only === 1;
+				
+				// Use date range filtering if dates are set, otherwise fall back to single-day filtering
+				if (!empty($entry->qso_date_start) || !empty($entry->qso_date_end)) {
+					$entry->qso_summary = $this->get_qso_summary_for_date_range($user_id, $dateStart, $dateEnd, $entry->logbook_id, $satOnly);
+					$entry->qso_list = $this->get_qso_list_for_date_range($user_id, $dateStart, $dateEnd, $entry->logbook_id, $satOnly);
+				} else {
+					$entry->qso_summary = $this->get_qso_summary_for_date($user_id, $entryDate, $entry->logbook_id);
+					$entry->qso_list = $this->get_qso_list_for_date($user_id, $entryDate, $entry->logbook_id);
+				}
 			}
 		}
 
@@ -560,6 +578,119 @@ class Note extends CI_Model {
 		return $this->db->affected_rows();
 	}
 
-}
+	public function get_qso_list_for_date_range($user_id, $start_date, $end_date, $logbook_id = NULL, $sat_only = FALSE) {
+		$station_ids = $this->get_station_ids_for_summary($user_id, $logbook_id);
+		if (empty($station_ids)) {
+			return array();
+		}
 
-?>
+		$table = $this->config->item('table_name');
+
+		$this->db->select('COL_CALL, COL_TIME_ON, COL_BAND, COL_MODE, COL_SUBMODE, COL_COUNTRY, COL_GRIDSQUARE, COL_RST_SENT, COL_RST_RCVD, COL_FREQ, COL_DXCC, COL_DISTANCE, COL_PROP_MODE');
+		$this->db->from($table);
+		$this->db->where_in('station_id', $station_ids);
+		$this->db->where('DATE(COL_TIME_ON) >=', $start_date);
+		$this->db->where('DATE(COL_TIME_ON) <=', $end_date);
+		
+		if ($sat_only) {
+			$this->db->where('COL_PROP_MODE', 'SAT');
+		}
+
+		$this->db->order_by('COL_TIME_ON', 'ASC');
+		$this->db->limit(100);
+
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	public function get_qso_summary_for_date_range($user_id, $start_date, $end_date, $logbook_id = NULL, $sat_only = FALSE) {
+		$station_ids = $this->get_station_ids_for_summary($user_id, $logbook_id);
+		if (empty($station_ids)) {
+			return null;
+		}
+
+		$table = $this->config->item('table_name');
+
+		$this->db->select('COUNT(*) AS total_qsos, COUNT(DISTINCT COL_DXCC) AS dxcc_worked');
+		$this->db->from($table);
+		$this->db->where_in('station_id', $station_ids);
+		$this->db->where('DATE(COL_TIME_ON) >=', $start_date);
+		$this->db->where('DATE(COL_TIME_ON) <=', $end_date);
+		
+		if ($sat_only) {
+			$this->db->where('COL_PROP_MODE', 'SAT');
+		}
+
+		$overview = $this->db->get()->row();
+
+		// Get bands with date range
+		$this->db->distinct();
+		$this->db->select('LOWER(COL_BAND) AS band, COL_BAND+0 AS band_num', FALSE);
+		$this->db->from($table);
+		$this->db->where_in('station_id', $station_ids);
+		$this->db->where('DATE(COL_TIME_ON) >=', $start_date);
+		$this->db->where('DATE(COL_TIME_ON) <=', $end_date);
+		$this->db->where('COL_BAND IS NOT NULL', null, FALSE);
+		$this->db->where('COL_BAND !=', '');
+		
+		if ($sat_only) {
+			$this->db->where('COL_PROP_MODE', 'SAT');
+		}
+		
+		$this->db->order_by('band_num', 'ASC');
+		$bandsResult = $this->db->get()->result();
+
+		// Get modes with date range
+		$this->db->distinct();
+		$this->db->select('(CASE WHEN COL_SUBMODE IS NOT NULL AND COL_SUBMODE != "" THEN UPPER(COL_SUBMODE) ELSE UPPER(COL_MODE) END) AS mode_label', FALSE);
+		$this->db->from($table);
+		$this->db->where_in('station_id', $station_ids);
+		$this->db->where('DATE(COL_TIME_ON) >=', $start_date);
+		$this->db->where('DATE(COL_TIME_ON) <=', $end_date);
+		$this->db->where('COL_MODE IS NOT NULL', null, FALSE);
+		$this->db->where('COL_MODE !=', '');
+		
+		if ($sat_only) {
+			$this->db->where('COL_PROP_MODE', 'SAT');
+		}
+		
+		$this->db->order_by('mode_label', 'ASC');
+		$modesResult = $this->db->get()->result();
+
+		// Get highlight DX
+		$this->db->select('COL_CALL, COL_COUNTRY, COL_DISTANCE');
+		$this->db->from($table);
+		$this->db->where_in('station_id', $station_ids);
+		$this->db->where('DATE(COL_TIME_ON) >=', $start_date);
+		$this->db->where('DATE(COL_TIME_ON) <=', $end_date);
+		
+		if ($sat_only) {
+			$this->db->where('COL_PROP_MODE', 'SAT');
+		}
+
+		$this->db->where('COL_DISTANCE IS NOT NULL', null, FALSE);
+		$this->db->where('COL_DISTANCE >', 0);
+		$this->db->order_by('COL_DISTANCE+0', 'DESC', FALSE);
+		$this->db->limit(1);
+		$highlight = $this->db->get()->row();
+
+		$bands = array();
+		foreach ($bandsResult as $band) {
+			$bands[] = $band->band;
+		}
+
+		$modes = array();
+		foreach ($modesResult as $mode) {
+			$modes[] = $mode->mode_label;
+		}
+
+		return array(
+			'total_qsos' => (int)($overview->total_qsos ?? 0),
+			'dxcc_worked' => (int)($overview->dxcc_worked ?? 0),
+			'bands' => $bands,
+			'modes' => $modes,
+			'highlight_dx' => $highlight
+		);
+	}
+
+}

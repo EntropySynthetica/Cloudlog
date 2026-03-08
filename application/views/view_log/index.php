@@ -84,6 +84,27 @@
 								} ?>
 							</select>
 							<small class="form-text text-muted">QSO summary will be filtered to this logbook</small>
+							
+							<div class="mt-3 pt-3 border-top">
+								<label class="form-label small fw-semibold mb-2">QSO Filters (optional)</label>
+								<div class="row g-2 mb-2">
+									<div class="col-6">
+										<label for="quickQsoDateStart" class="form-label small mb-1">Date Start</label>
+										<input type="date" class="form-control form-control-sm" id="quickQsoDateStart" name="qso_date_start">
+									</div>
+									<div class="col-6">
+										<label for="quickQsoDateEnd" class="form-label small mb-1">Date End</label>
+										<input type="date" class="form-control form-control-sm" id="quickQsoDateEnd" name="qso_date_end">
+									</div>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" value="1" id="quickQsoSatOnly" name="qso_satellite_only">
+									<label class="form-check-label small" for="quickQsoSatOnly">
+										<i class="fas fa-satellite me-1"></i>Satellites only
+									</label>
+								</div>
+								<small class="form-text text-muted d-block mt-1">Leave dates empty to use entry date</small>
+							</div>
 						</div>
 					</div>
 

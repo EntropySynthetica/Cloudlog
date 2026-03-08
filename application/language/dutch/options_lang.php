@@ -100,7 +100,22 @@ $lang['options_version_dialog_hide_all'] = "Hide for all Users";
 $lang['options_version_dialog_show_all_hint'] = "This will show the version dialog automatically to all users on their next page reload.";
 $lang['options_version_dialog_hide_all_hint'] = "This will deactivate the automatic popup of the version dialog for all users.";
 
-$lang['options_save'] = 'Save';
+$lang['options_save'] = 'Opslaan';
+$lang['options_appearance_settings_saved'] = 'Weergave-instellingen zijn succesvol opgeslagen.';
+
+// Registratie
+$lang['options_registration'] = 'Registratie';
+$lang['options_open_registration'] = 'Open registratie';
+$lang['options_open_registration_hint'] = 'Sta gebruikers toe zich zelf in te schrijven via een openbare aanmeldingspagina.';
+$lang['options_registration_settings_saved'] = 'Registratie-instellingen zijn succesvol opgeslagen.';
+
+// Openbaar stationsdagboek
+$lang['options_public_station_diary'] = 'Openbaar stationsdagboek';
+$lang['options_public_station_diary_enabled'] = 'Openbaar stationsdagboek';
+$lang['options_public_station_diary_enabled_hint'] = 'Schakel de mogelijkheid voor gebruikers in of uit om openbare stationsdagboekitems te maken. Wanneer uitgeschakeld, blijven alle dagboekitems privé, ongeacht de individuele instellingen.';
+$lang['options_public_station_diary_settings_saved'] = 'Instellingen voor openbaar stationsdagboek zijn succesvol opgeslagen.';
+$lang['options_enabled'] = 'Ingeschakeld';
+$lang['options_disabled'] = 'Uitgeschakeld';
 
 // Bands
 

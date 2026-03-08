@@ -493,4 +493,42 @@ class Options extends CI_Controller {
 		redirect('/options/version_dialog');
 	}
 
+	// function used to display the /public_diary url
+	function public_diary() {
+
+		$data['page_title'] = $this->lang->line('options_cloudlog_options');
+		$data['sub_heading'] = $this->lang->line('options_public_station_diary');
+
+		$this->load->view('interface_assets/header', $data);
+		$this->load->view('options/public_diary');
+		$this->load->view('interface_assets/footer');
+	}
+
+	// Handles saving the public diary options to the options system.
+	function public_diary_save() {
+
+		$data['page_title'] = $this->lang->line('options_cloudlog_options');
+		$data['sub_heading'] = $this->lang->line('options_public_station_diary');
+
+		$this->load->helper(array('form', 'url'));
+
+		$this->load->library('form_validation');
+
+		$this->form_validation->set_rules('public_station_diary_enabled', 'Public Station Diary', 'required');
+
+		if ($this->form_validation->run() == FALSE) {
+			$this->load->view('interface_assets/header', $data);
+			$this->load->view('options/public_diary');
+			$this->load->view('interface_assets/footer');
+		} else {
+			// Update public station diary enabled option within the options system
+			$public_diary_update = $this->optionslib->update('public_station_diary_enabled', $this->input->post('public_station_diary_enabled'), 'yes');
+			if($public_diary_update == TRUE) {
+				$this->session->set_flashdata('success', $this->lang->line('options_public_station_diary_settings_saved'));
+			}
+
+			redirect('/options/public_diary');
+		}
+	}
+
 }

@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?php echo htmlspecialchars($page_title ?? 'Station Diary', ENT_QUOTES); ?></title>
-	<link rel="stylesheet" href="<?php echo base_url(); ?>assets/css/bootstrap.min.css">
+	<link rel="stylesheet" href="<?php echo base_url(); ?>assets/css/default/bootstrap.min.css">
 	<link rel="stylesheet" href="<?php echo base_url(); ?>assets/fontawesome/css/all.css">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -147,10 +147,6 @@
 			text-decoration: underline;
 		}
 
-		.diary-pagination .pagination {
-			justify-content: center;
-		}
-
 		@media (max-width: 768px) {
 			.diary-shell {
 				margin: 0;
@@ -198,6 +194,10 @@
 				display: block !important;
 			}
 		}
+
+		.qso-summary-container {
+			margin-top: 0.5rem;
+		}
 	</style>
 </head>
 <body>
@@ -223,59 +223,84 @@
 						<hr class="diary-rule mt-0">
 						<div class="diary-entry-date"><?php echo date('F j, Y', strtotime($entry->created_at)); ?></div>
 
-						<div class="note-content mb-4"><?php echo $entry->note; ?></div>
-
-						<?php if (!empty($entry->qso_summary)) { ?>
-							<div class="diary-qso-box mb-4">
-								<div class="diary-qso-title mb-2"><i class="fas fa-satellite-dish me-2"></i>QSO Highlights – <?php echo date('F j, Y', strtotime($entry->created_at)); ?></div>
+					<div class="note-content mb-4"><?php echo preg_replace('/<p><br\s*\/?><\/p>/i', '', $entry->note); ?></div>
 								<hr class="diary-rule mt-2">
-								<ol class="mb-2 ps-3">
-									<li><strong>Total QSOs:</strong> <?php echo (int)$entry->qso_summary['total_qsos']; ?></li>
-									<li><strong>DXCC worked:</strong> <?php echo (int)$entry->qso_summary['dxcc_worked']; ?></li>
-									<li><strong>Bands:</strong> <?php echo !empty($entry->qso_summary['bands']) ? htmlspecialchars(implode(', ', $entry->qso_summary['bands']), ENT_QUOTES) : '-'; ?></li>
-									<li><strong>Modes:</strong> <?php echo !empty($entry->qso_summary['modes']) ? htmlspecialchars(implode(', ', $entry->qso_summary['modes']), ENT_QUOTES) : '-'; ?></li>
-								</ol>
-								<?php if (!empty($entry->qso_summary['highlight_dx'])) { ?>
-									<div class="small text-muted">
-										<strong>Highlight DX:</strong> <?php echo htmlspecialchars($entry->qso_summary['highlight_dx']->COL_CALL, ENT_QUOTES); ?>
-										(<?php echo htmlspecialchars($entry->qso_summary['highlight_dx']->COL_COUNTRY ?? '-', ENT_QUOTES); ?>,
-										<?php echo (int)$entry->qso_summary['highlight_dx']->COL_DISTANCE; ?> km)
-									</div>
-								<?php } ?>
-								
-								<?php if (!empty($entry->qso_list)) { ?>
-									<details class="mt-3">
-										<summary class="fw-bold" style="cursor: pointer; color: #2f4f73;">View QSO List (<?php echo count($entry->qso_list); ?> contacts)</summary>
-										<div class="table-responsive mt-2">
-											<table class="table table-sm table-striped">
-												<thead>
-													<tr>
-														<th>Time</th>
-														<th>Call</th>
-														<th>Band</th>
-														<th>Mode</th>
-														<th>Country</th>
-														<th>Grid</th>
-													</tr>
-												</thead>
-												<tbody>
-													<?php foreach ($entry->qso_list as $qso) { ?>
-														<tr>
-															<td><?php echo date('H:i', strtotime($qso->COL_TIME_ON)); ?></td>
-															<td><strong><?php echo htmlspecialchars($qso->COL_CALL, ENT_QUOTES); ?></strong></td>
-															<td><?php echo htmlspecialchars($qso->COL_BAND ?? '-', ENT_QUOTES); ?></td>
-															<td><?php echo htmlspecialchars(!empty($qso->COL_SUBMODE) ? $qso->COL_SUBMODE : $qso->COL_MODE, ENT_QUOTES); ?></td>
-															<td><?php echo htmlspecialchars($qso->COL_COUNTRY ?? '-', ENT_QUOTES); ?></td>
-															<td><?php echo htmlspecialchars($qso->COL_GRIDSQUARE ?? '-', ENT_QUOTES); ?></td>
-														</tr>
-													<?php } ?>
-												</tbody>
-											</table>
+								<!-- QSO Summary UPDATED VERSION 2.0 -->
+								<?php if ((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) { ?>
+									<div class="bg-light border rounded p-3 mb-3">
+										<div class="row g-3">
+											<div class="col-6 col-sm-3">
+												<div class="text-center">
+													<div class="small text-muted">Total QSOs</div>
+													<div class="h5 mb-0 fw-bold"><?php echo (int)$entry->qso_summary['total_qsos']; ?></div>
+												</div>
+											</div>
+											<div class="col-6 col-sm-3">
+												<div class="text-center">
+													<div class="small text-muted">DXCC</div>
+													<div class="h5 mb-0 fw-bold"><?php echo (int)$entry->qso_summary['dxcc_worked']; ?></div>
+												</div>
+											</div>
+											<div class="col-6 col-sm-3">
+												<div class="text-center">
+													<div class="small text-muted">Bands</div>
+													<div class="small"><span class="badge bg-primary"><?php echo !empty($entry->qso_summary['bands']) ? htmlspecialchars(implode(', ', $entry->qso_summary['bands']), ENT_QUOTES) : '-'; ?></span></div>
+												</div>
+											</div>
+											<div class="col-6 col-sm-3">
+												<div class="text-center">
+													<div class="small text-muted">Modes</div>
+													<div class="small"><span class="badge bg-secondary"><?php echo !empty($entry->qso_summary['modes']) ? htmlspecialchars(implode(', ', $entry->qso_summary['modes']), ENT_QUOTES) : '-'; ?></span></div>
+												</div>
+											</div>
 										</div>
-									</details>
+									</div>
+
+									<div class="qso-summary-container">
+										<?php if (!empty($entry->qso_summary['highlight_dx'])) { ?>
+											<div class="alert alert-info mb-3">
+												<div class="small mb-1"><strong>Highlight DX:</strong></div>
+												<div class="d-flex align-items-center gap-2">
+													<span class="h6 mb-0 highlight-dx-call"><?php echo htmlspecialchars($entry->qso_summary['highlight_dx']->COL_CALL, ENT_QUOTES); ?></span>
+													<span class="badge bg-dark highlight-dx-country"><?php echo htmlspecialchars($entry->qso_summary['highlight_dx']->COL_COUNTRY ?? '-', ENT_QUOTES); ?></span>
+													<span class="text-muted ms-auto"><span class="highlight-dx-distance"><?php echo (int)$entry->qso_summary['highlight_dx']->COL_DISTANCE; ?></span> km</span>
+												</div>
+											</div>
+										<?php } ?>
+										
+										<?php if (!empty($entry->qso_list)) { ?>
+											<details class="mt-2">
+											<summary class="fw-bold" style="cursor: pointer; color: #2f4f73;">View QSO List (<span class="qso-count"><?php echo count($entry->qso_list); ?></span> contacts)</summary>
+											<div class="table-responsive mt-2">
+												<table class="table table-sm table-striped">
+													<thead>
+														<tr>
+															<th>Time</th>
+															<th>Call</th>
+															<th>Band</th>
+															<th>Mode</th>
+															<th>Country</th>
+															<th>Grid</th>
+														</tr>
+													</thead>
+													<tbody class="qso-table-body">
+														<?php foreach ($entry->qso_list as $qso) { ?>
+															<tr>
+																<td><?php echo date('H:i', strtotime($qso->COL_TIME_ON)); ?></td>
+																<td><strong><?php echo htmlspecialchars($qso->COL_CALL, ENT_QUOTES); ?></strong></td>
+																<td><?php echo htmlspecialchars($qso->COL_BAND ?? '-', ENT_QUOTES); ?></td>
+																<td><?php echo htmlspecialchars(!empty($qso->COL_SUBMODE) ? $qso->COL_SUBMODE : $qso->COL_MODE, ENT_QUOTES); ?></td>
+																<td><?php echo htmlspecialchars($qso->COL_COUNTRY ?? '-', ENT_QUOTES); ?></td>
+																<td><?php echo htmlspecialchars($qso->COL_GRIDSQUARE ?? '-', ENT_QUOTES); ?></td>
+															</tr>
+														<?php } ?>
+													</tbody>
+												</table>
+											</div>
+										</details>
+									<?php } ?>
+								</div>
 								<?php } ?>
-							</div>
-						<?php } ?>
 
 						<?php if (!empty($entry->images)) { ?>
 							<div class="row g-2 mb-3">
@@ -295,7 +320,7 @@
 				<?php } ?>
 
 				<?php if (!empty($pagination_links)) { ?>
-					<nav aria-label="Station diary pages" class="no-print diary-pagination mt-3">
+				<nav aria-label="Station diary pages" class="d-flex justify-content-center no-print mt-3">
 						<?php echo $pagination_links; ?>
 					</nav>
 				<?php } ?>
@@ -310,5 +335,75 @@
 			</div>
 		</div>
 	</div>
-</body>
-</html>
+
+	<script>
+		document.querySelectorAll('.qso-date-filter, .qso-satellite-filter').forEach(el => {
+			el.addEventListener('change', function() {
+				const entryId = this.dataset.entryId;
+				const startDate = document.querySelector(`input[data-entry-id="${entryId}"][data-filter-type="start"]`).value;
+				const endDate = document.querySelector(`input[data-entry-id="${entryId}"][data-filter-type="end"]`).value;
+				const satOnly = document.querySelector(`#sat-filter-${entryId}`).checked;
+				
+				const formData = new URLSearchParams();
+				formData.append('callsign', '<?php echo htmlspecialchars($callsign ?? '', ENT_QUOTES); ?>');
+				formData.append('entry_id', entryId);
+				formData.append('start_date', startDate);
+				formData.append('end_date', endDate);
+				formData.append('sat_only', satOnly ? '1' : '0');
+				
+				fetch('<?php echo base_url(); ?>index.php/stationdiary/get_filtered_qsos', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+					body: formData
+				})
+				.then(r => r.json())
+				.then(data => {
+					if (data.success) {
+						const container = document.querySelector(`#qso-summary-${entryId}`);
+						
+						// Update highlight DX if present
+						const dxCall = container.querySelector('.highlight-dx-call');
+						if (dxCall && data.highlight_dx) {
+							dxCall.textContent = data.highlight_dx.COL_CALL || '-';
+							const dxCountry = container.querySelector('.highlight-dx-country');
+							const dxDistance = container.querySelector('.highlight-dx-distance');
+							if (dxCountry) dxCountry.textContent = data.highlight_dx.COL_COUNTRY || '-';
+							if (dxDistance) dxDistance.textContent = parseInt(data.highlight_dx.COL_DISTANCE || 0);
+						}
+						
+						// Update QSO count and table
+						const countEl = container.querySelector('.qso-count');
+						if (countEl) countEl.textContent = data.qso_list.length;
+						
+						const tbody = container.querySelector('.qso-table-body');
+						if (tbody && data.qso_list.length > 0) {
+							tbody.innerHTML = data.qso_list.map(qso => {
+								const timeStr = new Date(qso.COL_TIME_ON).toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+								const ent = (text) => (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+								return `<tr><td>${timeStr}</td><td><strong>${ent(qso.COL_CALL)}</strong></td><td>${ent(qso.COL_BAND || '-')}</td><td>${ent((qso.COL_SUBMODE || qso.COL_MODE) || '-')}</td><td>${ent(qso.COL_COUNTRY || '-')}</td><td>${ent(qso.COL_GRIDSQUARE || '-')}</td></tr>`;
+							}).join('');
+						} else if (tbody) {
+							tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No QSOs match the selected filters</td></tr>';
+						}
+					}
+				})
+				.catch(e => console.error('Filter error:', e));
+			});
+		});
+		
+		document.querySelectorAll('.qso-filter-reset').forEach(btn => {
+			btn.addEventListener('click', function() {
+				const entryId = this.dataset.entryId;
+				const satCheckbox = document.querySelector(`#sat-filter-${entryId}`);
+				if (satCheckbox) satCheckbox.checked = false;
+				
+				const startInput = document.querySelector(`input[data-entry-id="${entryId}"][data-filter-type="start"]`);
+				if (startInput) {
+					const today = startInput.value;
+					const endInput = document.querySelector(`input[data-entry-id="${entryId}"][data-filter-type="end"]`);
+					if (endInput) endInput.value = today;
+					startInput.dispatchEvent(new Event('change', {bubbles: true}));
+				}
+			});
+		});
+	</script>

@@ -86,6 +86,34 @@
 		</div>
 	</div>
 
+	<div class="mb-3 border rounded p-3 bg-light">
+		<div class="fw-semibold mb-2">QSO Summary Filters (optional)</div>
+		<p class="small text-muted mb-3">When a QSO summary is included, these filters control which QSOs are displayed:</p>
+		
+		<div class="row g-3">
+			<div class="col-md-6">
+				<label for="qsoDateStart" class="form-label">QSO Date Range Start</label>
+				<input type="date" class="form-control" id="qsoDateStart" name="qso_date_start" value="<?php echo set_value('qso_date_start'); ?>">
+				<small class="text-muted">Leave empty to show all QSOs from the entry date forward</small>
+			</div>
+			<div class="col-md-6">
+				<label for="qsoDateEnd" class="form-label">QSO Date Range End</label>
+				<input type="date" class="form-control" id="qsoDateEnd" name="qso_date_end" value="<?php echo set_value('qso_date_end'); ?>">
+				<small class="text-muted">Leave empty to show QSOs through today</small>
+			</div>
+		</div>
+		
+		<div class="mt-3">
+			<div class="form-check">
+				<input class="form-check-input" type="checkbox" value="1" id="qsoSatelliteOnly" name="qso_satellite_only" <?php echo set_value('qso_satellite_only') ? 'checked' : ''; ?>>
+				<label class="form-check-label" for="qsoSatelliteOnly">
+					<i class="fas fa-satellite me-1"></i>Show satellite QSOs only
+				</label>
+			</div>
+			<small class="text-muted d-block mt-2">When checked, only QSOs with propagation mode "SAT" will be displayed</small>
+		</div>
+	</div>
+
 	<div class="mb-3">
 		<label for="diaryImages" class="form-label">Diary images (optional)</label>
 		<input type="file" class="form-control" id="diaryImages" name="diary_images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>

@@ -40,6 +40,11 @@ $current_page = $this->uri->segment(2) ?: 'index';
 					<i class="fas fa-info-circle"></i> <?php echo lang('options_version_dialog'); ?>
 				</a>
 			</li>
+			<li class="list-group-item <?php echo ($current_page == 'public_diary') ? 'active' : ''; ?>">
+				<a class="nav-link" href="<?php echo site_url('options/public_diary'); ?>">
+					<i class="fas fa-book"></i> <?php echo lang('options_public_station_diary'); ?>
+				</a>
+			</li>
 		</ul>
 	</div>
 </div>

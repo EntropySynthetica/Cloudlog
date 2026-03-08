@@ -99,6 +99,21 @@ $lang['options_version_dialog_show_all_hint'] = "Bu, bir sonraki sayfa yeniden y
 $lang['options_version_dialog_hide_all_hint'] = "Bu, tüm kullanıcılar için sürüm iletişim kutusunun otomatik olarak açılmasını devre dışı bırakacaktır.";
 
 $lang['options_save'] = 'Kaydet';
+$lang['options_appearance_settings_saved'] = 'Görünüm ayarları başarıyla kaydedildi.';
+
+// Kayıt
+$lang['options_registration'] = 'Kayıt';
+$lang['options_open_registration'] = 'Açık kayıt';
+$lang['options_open_registration_hint'] = 'Kullanıcıların genel bir kayıt sayfası aracılığıyla kendilerini kaydetmesine izin verin.';
+$lang['options_registration_settings_saved'] = 'Kayıt ayarları başarıyla kaydedildi.';
+
+// Genel istasyon günlüğü
+$lang['options_public_station_diary'] = 'Genel istasyon günlüğü';
+$lang['options_public_station_diary_enabled'] = 'Genel istasyon günlüğü';
+$lang['options_public_station_diary_enabled_hint'] = 'Kullanıcıların genel istasyon günlüğü giriş oluşturma yeteneğini etkinleştirin veya devre dışı bırakın. Devre dışı bırakıldığında, bireysel ayarlardan bağımsız olarak tüm günlük giriş leri özel kalır.';
+$lang['options_public_station_diary_settings_saved'] = 'Genel istasyon günlüğü ayarları başarıyla kaydedildi.';
+$lang['options_enabled'] = 'Etkinleştirildi';
+$lang['options_disabled'] = 'Devre dışı';
 
 // Bantlar
 
