@@ -72,7 +72,7 @@
 						</div>
 						<div class="mb-0 ms-4" id="quickLogbookSelector" style="display:none;">
 							<label for="quickLogbookSelect" class="form-label small mb-1">Select logbook <span class="text-danger">*</span></label>
-							<select name="logbook_id" class="form-select form-select-sm" id="quickLogbookSelect" required>
+						<select name="logbook_id" class="form-select form-select-sm" id="quickLogbookSelect">
 								<option value="">-- Choose a logbook --</option>
 								<?php 
 								$this->load->model('logbooks_model');
@@ -98,6 +98,7 @@
 					<input type="hidden" name="category" value="Station Diary">
 				</div>
 				<div class="modal-footer bg-light">
+					<div id="diaryFormFooterMessages" class="flex-grow-1 me-3"></div>
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
 						<i class="fas fa-times me-1"></i> Close
 					</button>
@@ -115,6 +116,34 @@ document.addEventListener('DOMContentLoaded', function() {
 	var quickIncludeQso = document.getElementById('quickIncludeQso');
 	var quickLogbookSelector = document.getElementById('quickLogbookSelector');
 	var quickLogbookSelect = document.getElementById('quickLogbookSelect');
+	var messagesDiv = document.getElementById('diaryFormMessages');
+	var footerMessagesDiv = document.getElementById('diaryFormFooterMessages');
+	
+	// Mirror messages from body to footer using MutationObserver
+	if (messagesDiv && footerMessagesDiv) {
+		var observer = new MutationObserver(function(mutations) {
+			// Copy content to footer
+			if (messagesDiv.innerHTML.trim() !== '') {
+				footerMessagesDiv.innerHTML = messagesDiv.innerHTML;
+			} else {
+				footerMessagesDiv.innerHTML = '';
+			}
+		});
+		observer.observe(messagesDiv, { 
+			childList: true, 
+			subtree: true,
+			characterData: true 
+		});
+	}
+	
+	// Also listen to HTMX events to ensure we catch the response
+	if (messagesDiv && footerMessagesDiv) {
+		document.body.addEventListener('htmx:afterSwap', function(event) {
+			if (event.detail.target.id === 'diaryFormMessages') {
+				footerMessagesDiv.innerHTML = messagesDiv.innerHTML;
+			}
+		});
+	}
 	
 	if (quickIncludeQso && quickLogbookSelector && quickLogbookSelect) {
 		quickIncludeQso.addEventListener('change', function() {
@@ -155,13 +184,13 @@ document.addEventListener('DOMContentLoaded', function() {
 					e.preventDefault();
 					e.stopPropagation();
 					
-					// Show error message in the form
-					var messagesDiv = document.getElementById('diaryFormMessages');
+					// Show error message in both body and footer
+					var errorHtml = '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+						'<i class="fas fa-exclamation-triangle me-2"></i>Please enter some content for your note.' +
+						'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+						'</div>';
 					if (messagesDiv) {
-						messagesDiv.innerHTML = '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
-							'<i class="fas fa-exclamation-triangle me-2"></i>Please enter some content for your note.' +
-							'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-							'</div>';
+						messagesDiv.innerHTML = errorHtml;
 					}
 					return false;
 				}
@@ -177,10 +206,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			stationDiaryModal.addEventListener('hidden.bs.modal', function() {
 				quickQuill.setText('');
 				document.getElementById('quickHiddenArea').value = '';
-				// Clear any error messages
-				var messagesDiv = document.getElementById('diaryFormMessages');
+				// Clear any error messages in both locations
 				if (messagesDiv) {
 					messagesDiv.innerHTML = '';
+				}
+				if (footerMessagesDiv) {
+					footerMessagesDiv.innerHTML = '';
 				}
 				// Reset checkboxes and hide logbook selector
 				if (quickIncludeQso) quickIncludeQso.checked = false;
