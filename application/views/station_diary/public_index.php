@@ -224,9 +224,10 @@
 						<div class="diary-entry-date"><?php echo date('F j, Y', strtotime($entry->created_at)); ?></div>
 
 					<div class="note-content mb-4"><?php echo preg_replace('/<p><br\s*\/?><\/p>/i', '', $entry->note); ?></div>
-								<hr class="diary-rule mt-2">
+								
 								<!-- QSO Summary UPDATED VERSION 2.0 -->
 								<?php if ((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) { ?>
+									<hr class="diary-rule mt-2">
 									<div class="bg-light border rounded p-3 mb-3">
 										<div class="row g-3">
 											<div class="col-6 col-sm-3">
