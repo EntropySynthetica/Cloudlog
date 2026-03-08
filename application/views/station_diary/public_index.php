@@ -316,10 +316,13 @@
 							</div>
 						<?php } ?>
 
-				<?php if (((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) || !empty($entry->images)) { ?>
-					<hr class="diary-rule mt-4">
-				<?php } ?>
-				<?php if (!empty($pagination_links)) { ?>
+					<?php if (((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) || !empty($entry->images)) { ?>
+						<hr class="diary-rule mt-4">
+					<?php } ?>
+				</article>
+			<?php } ?>
+
+			<?php if (!empty($pagination_links)) { ?>
 				<nav aria-label="Station diary pages" class="d-flex justify-content-center no-print mt-3">
 						<?php echo $pagination_links; ?>
 					</nav>
