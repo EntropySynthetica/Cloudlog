@@ -695,7 +695,7 @@ class Note extends CI_Model {
 
 /**
  * Process image shortcodes in diary note content
- * Supports: [image:ID], [image:caption], [image:ID:modifier]
+ * Supports: [image:ID], [image:caption], [image:ID:modifier], [image:ID:modifier:modifier]
  * Modifiers: left, right, center, small, medium, large
  * 
  * @param string $content Note content with potential shortcodes
@@ -709,12 +709,12 @@ public function process_image_shortcodes($content, $images = array()) {
 	
 	$usedImageIds = array();
 	
-	// Match [image:identifier] or [image:identifier:modifier]
+	// Match [image:identifier] or [image:identifier:modifier[:modifier...]]
 	$pattern = '/\[image:([^\]:]+)(?::([^\]]+))?\]/i';
 	
 	$content = preg_replace_callback($pattern, function($matches) use ($images, &$usedImageIds) {
 		$identifier = trim($matches[1]);
-		$modifier = isset($matches[2]) ? trim($matches[2]) : '';
+		$modifierString = isset($matches[2]) ? trim($matches[2]) : '';
 		
 		// Find the image by ID or caption
 		$image = null;
@@ -744,32 +744,38 @@ public function process_image_shortcodes($content, $images = array()) {
 		// Track this image as used
 		$usedImageIds[] = (int)$image->id;
 		
-		// Determine CSS classes based on modifier
+		// Determine CSS classes based on modifiers
 		$wrapperClass = 'diary-inline-image mb-3';
 		$imgClass = 'img-fluid rounded';
 		$style = '';
 		
-		if (!empty($modifier)) {
-			$mod = strtolower($modifier);
+		if (!empty($modifierString)) {
+			$modifiers = array_filter(array_map('trim', explode(':', strtolower($modifierString))));
 			
-			// Alignment modifiers
-			if ($mod === 'left') {
-				$wrapperClass .= ' float-start me-3';
-				$style = 'max-width: 400px;';
-			} elseif ($mod === 'right') {
-				$wrapperClass .= ' float-end ms-3';
-				$style = 'max-width: 400px;';
-			} elseif ($mod === 'center') {
-				$wrapperClass .= ' text-center mx-auto';
+			foreach ($modifiers as $mod) {
+				if ($mod === 'left') {
+					$wrapperClass .= ' float-start me-3';
+					if (empty($style)) {
+						$style = 'max-width: 400px;';
+					}
+				} elseif ($mod === 'right') {
+					$wrapperClass .= ' float-end ms-3';
+					if (empty($style)) {
+						$style = 'max-width: 400px;';
+					}
+				} elseif ($mod === 'center') {
+					$wrapperClass .= ' text-center mx-auto';
+				}
 			}
-			
-			// Size modifiers
-			if ($mod === 'small') {
-				$style = 'max-width: 300px;';
-			} elseif ($mod === 'medium') {
-				$style = 'max-width: 500px;';
-			} elseif ($mod === 'large') {
-				$style = 'max-width: 800px;';
+
+			foreach ($modifiers as $mod) {
+				if ($mod === 'small') {
+					$style = 'max-width: 300px;';
+				} elseif ($mod === 'medium') {
+					$style = 'max-width: 500px;';
+				} elseif ($mod === 'large') {
+					$style = 'max-width: 800px;';
+				}
 			}
 		}
 		
