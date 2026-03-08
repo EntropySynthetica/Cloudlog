@@ -356,4 +356,43 @@ class Notes extends CI_Controller {
 		$this->session->set_flashdata('notice', sprintf('%s → %s (%d)', $source, $target, $affected));
 		redirect('notes');
 	}
+
+	public function update_image_caption() {
+		header('Content-Type: application/json');
+		
+		$this->load->model('user_model');
+		if (!$this->user_model->authorize(2)) {
+			echo json_encode(array('success' => false, 'message' => 'Unauthorized'));
+			return;
+		}
+
+		$imageId = (int)$this->input->post('image_id');
+		$caption = trim($this->input->post('caption', TRUE));
+
+		if ($imageId <= 0) {
+			echo json_encode(array('success' => false, 'message' => 'Invalid image ID'));
+			return;
+		}
+
+		$this->load->model('note');
+		
+		// Verify ownership through the diary entry
+		$this->db->select('diary_images.id, diary_images.diary_id');
+		$this->db->from('diary_images');
+		$this->db->join('notes', 'notes.id = diary_images.diary_id');
+		$this->db->where('diary_images.id', $imageId);
+		$this->db->where('notes.user_id', (int)$this->session->userdata('user_id'));
+		$query = $this->db->get();
+
+		if ($query->num_rows() === 0) {
+			echo json_encode(array('success' => false, 'message' => 'Image not found or access denied'));
+			return;
+		}
+
+		// Update caption
+		$this->db->where('id', $imageId);
+		$this->db->update('diary_images', array('caption' => $caption));
+
+		echo json_encode(array('success' => true));
+	}
 }

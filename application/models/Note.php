@@ -693,4 +693,102 @@ class Note extends CI_Model {
 		);
 	}
 
+/**
+ * Process image shortcodes in diary note content
+ * Supports: [image:ID], [image:caption], [image:ID:modifier]
+ * Modifiers: left, right, center, small, medium, large
+ * 
+ * @param string $content Note content with potential shortcodes
+ * @param array $images Array of image objects for this entry
+ * @return array ['content' => processed HTML, 'used_image_ids' => array of IDs used inline]
+ */
+public function process_image_shortcodes($content, $images = array()) {
+	if (empty($images) || empty($content)) {
+		return array('content' => $content, 'used_image_ids' => array());
+	}
+	
+	$usedImageIds = array();
+	
+	// Match [image:identifier] or [image:identifier:modifier]
+	$pattern = '/\[image:([^\]:]+)(?::([^\]]+))?\]/i';
+	
+	$content = preg_replace_callback($pattern, function($matches) use ($images, &$usedImageIds) {
+		$identifier = trim($matches[1]);
+		$modifier = isset($matches[2]) ? trim($matches[2]) : '';
+		
+		// Find the image by ID or caption
+		$image = null;
+		if (is_numeric($identifier)) {
+			// Lookup by ID
+			foreach ($images as $img) {
+				if ((int)$img->id === (int)$identifier) {
+					$image = $img;
+					break;
+				}
+			}
+		} else {
+			// Lookup by caption (case-insensitive)
+			foreach ($images as $img) {
+				if (!empty($img->caption) && strcasecmp($img->caption, $identifier) === 0) {
+					$image = $img;
+					break;
+				}
+			}
+		}
+		
+		// If image not found, return empty string (silent fail)
+		if (!$image) {
+			return '';
+		}
+		
+		// Track this image as used
+		$usedImageIds[] = (int)$image->id;
+		
+		// Determine CSS classes based on modifier
+		$wrapperClass = 'diary-inline-image mb-3';
+		$imgClass = 'img-fluid rounded';
+		$style = '';
+		
+		if (!empty($modifier)) {
+			$mod = strtolower($modifier);
+			
+			// Alignment modifiers
+			if ($mod === 'left') {
+				$wrapperClass .= ' float-start me-3';
+				$style = 'max-width: 400px;';
+			} elseif ($mod === 'right') {
+				$wrapperClass .= ' float-end ms-3';
+				$style = 'max-width: 400px;';
+			} elseif ($mod === 'center') {
+				$wrapperClass .= ' text-center mx-auto';
+			}
+			
+			// Size modifiers
+			if ($mod === 'small') {
+				$style = 'max-width: 300px;';
+			} elseif ($mod === 'medium') {
+				$style = 'max-width: 500px;';
+			} elseif ($mod === 'large') {
+				$style = 'max-width: 800px;';
+			}
+		}
+		
+		// Build the HTML
+		$html = '<div class="' . $wrapperClass . '"' . (!empty($style) ? ' style="' . $style . '"' : '') . '>';
+		$html .= '<img src="' . base_url() . ltrim($image->filename, '/') . '" alt="' . htmlspecialchars($image->caption ?? 'Diary image', ENT_QUOTES) . '" class="' . $imgClass . '">';
+		if (!empty($image->caption)) {
+			$html .= '<div class="small text-muted mt-1">' . htmlspecialchars($image->caption, ENT_QUOTES) . '</div>';
+		}
+		$html .= '</div>';
+		
+		return $html;
+	}, $content);
+	
+	return array(
+		'content' => $content,
+		'used_image_ids' => array_unique($usedImageIds)
+	);
 }
+
+}
+

@@ -223,41 +223,60 @@
 						<hr class="diary-rule mt-0">
 						<div class="diary-entry-date"><?php echo date('F j, Y', strtotime($entry->created_at)); ?></div>
 
-					<div class="note-content mb-4"><?php echo preg_replace('/<p><br\s*\/?><\/p>/i', '', $entry->note); ?></div>
-								
-								<!-- QSO Summary UPDATED VERSION 2.0 -->
-								<?php if ((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) { ?>
-									<hr class="diary-rule mt-2">
-									<div class="bg-light border rounded p-3 mb-3">
-										<div class="row g-3">
-											<div class="col-6 col-sm-3">
-												<div class="text-center">
-													<div class="small text-muted">Total QSOs</div>
+				<?php 
+				// Process image shortcodes in the note content
+				$CI =& get_instance();
+				$CI->load->model('note');
+				$processed = $CI->note->process_image_shortcodes($entry->note, $entry->images);
+				$processedNote = preg_replace('/<p><br\s*\/?><\/p>/i', '', $processed['content']);
+				$usedImageIds = $processed['used_image_ids'];
+				
+				// Filter out images that were used inline
+				$remainingImages = array();
+				if (!empty($entry->images)) {
+					foreach ($entry->images as $image) {
+						if (!in_array((int)$image->id, $usedImageIds)) {
+							$remainingImages[] = $image;
+						}
+					}
+				}
+				?>
+				
+				<div class="note-content mb-4"><?php echo $processedNote; ?></div>
+		
+		<!-- QSO Summary UPDATED VERSION 2.0 -->
+		<?php if ((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) { ?>
+			<hr class="diary-rule mt-2">
+			<div class="bg-light border rounded p-3 mb-3">
+				<div class="row g-3">
+					<div class="col-6 col-sm-3">
+						<div class="text-center">
+							<div class="small text-muted">Total QSOs</div>
 													<div class="h5 mb-0 fw-bold"><?php echo (int)$entry->qso_summary['total_qsos']; ?></div>
-												</div>
-											</div>
-											<div class="col-6 col-sm-3">
-												<div class="text-center">
-													<div class="small text-muted">DXCC</div>
-													<div class="h5 mb-0 fw-bold"><?php echo (int)$entry->qso_summary['dxcc_worked']; ?></div>
-												</div>
-											</div>
-											<div class="col-6 col-sm-3">
-												<div class="text-center">
-													<div class="small text-muted">Bands</div>
-													<div class="small"><span class="badge bg-primary"><?php echo !empty($entry->qso_summary['bands']) ? htmlspecialchars(implode(', ', $entry->qso_summary['bands']), ENT_QUOTES) : '-'; ?></span></div>
-												</div>
-											</div>
-											<div class="col-6 col-sm-3">
-												<div class="text-center">
-													<div class="small text-muted">Modes</div>
-													<div class="small"><span class="badge bg-secondary"><?php echo !empty($entry->qso_summary['modes']) ? htmlspecialchars(implode(', ', $entry->qso_summary['modes']), ENT_QUOTES) : '-'; ?></span></div>
-												</div>
-											</div>
-										</div>
-									</div>
+				</div>
+			</div>
+			<div class="col-6 col-sm-3">
+				<div class="text-center">
+					<div class="small text-muted">DXCC</div>
+					<div class="h5 mb-0 fw-bold"><?php echo (int)$entry->qso_summary['dxcc_worked']; ?></div>
+				</div>
+			</div>
+			<div class="col-6 col-sm-3">
+				<div class="text-center">
+					<div class="small text-muted">Bands</div>
+					<div class="small"><span class="badge bg-primary"><?php echo !empty($entry->qso_summary['bands']) ? htmlspecialchars(implode(', ', $entry->qso_summary['bands']), ENT_QUOTES) : '-'; ?></span></div>
+				</div>
+			</div>
+			<div class="col-6 col-sm-3">
+				<div class="text-center">
+					<div class="small text-muted">Modes</div>
+					<div class="small"><span class="badge bg-secondary"><?php echo !empty($entry->qso_summary['modes']) ? htmlspecialchars(implode(', ', $entry->qso_summary['modes']), ENT_QUOTES) : '-'; ?></span></div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-									<div class="qso-summary-container">
+	<div class="qso-summary-container">
 										<?php if (!empty($entry->qso_summary['highlight_dx'])) { ?>
 											<div class="alert alert-info mb-3">
 												<div class="small mb-1"><strong>Highlight DX:</strong></div>
@@ -303,9 +322,9 @@
 								</div>
 								<?php } ?>
 
-						<?php if (!empty($entry->images)) { ?>
+						<?php if (!empty($remainingImages)) { ?>
 							<div class="row g-2 mb-3">
-								<?php foreach ($entry->images as $image) { ?>
+								<?php foreach ($remainingImages as $image) { ?>
 									<div class="col-md-6">
 										<img src="<?php echo base_url() . ltrim($image->filename, '/'); ?>" alt="Diary image" class="img-fluid">
 										<?php if (!empty($image->caption)) { ?>
@@ -316,7 +335,7 @@
 							</div>
 						<?php } ?>
 
-					<?php if (((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) || !empty($entry->images)) { ?>
+					<?php if (((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) || !empty($remainingImages)) { ?>
 						<hr class="diary-rule mt-4">
 					<?php } ?>
 				</article>

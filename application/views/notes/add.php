@@ -1,4 +1,10 @@
 
+<style>
+#quillArea .ql-editor {
+	min-height: 300px;
+}
+</style>
+
 <div class="container notes">
 	<div class="row">
 		<div class="col-12 col-xl-10">
@@ -38,97 +44,140 @@
 
 	<form method="post" action="<?php echo site_url('notes/add'); ?>" name="notes_add" id="notes_add" enctype="multipart/form-data">
 
+	<!-- Basic Information -->
 	<div class="mb-3">
-		<label for="inputTitle" class="form-label"><?php echo lang('notes_input_title'); ?></label>
+		<label for="inputTitle" class="form-label fw-semibold"><?php echo lang('notes_input_title'); ?></label>
 		<input type="text" name="title" class="form-control" id="inputTitle" value="<?php echo set_value('title'); ?>" placeholder="e.g. Field day setup" autocomplete="off" required>
 	</div>
 
-	<div class="mb-3">
-	   <label for="catSelect" class="form-label"><?php echo lang('notes_input_category'); ?></label>
-	   <select name="category" class="form-select" id="catSelect">
-	   	<?php foreach ($categoryOptions as $catOption) { ?>
-	   	<option value="<?php echo $catOption; ?>" <?php echo ($selectedCategory === $catOption) ? 'selected' : ''; ?>><?php echo $catOption; ?></option>
-	   	<?php } ?>
-	   </select>
-	   <small class="text-muted d-block mt-1">Select an existing category or type a new one below.</small>
-	</div>
-
-	<div class="mb-3">
-		<label for="newCategoryInput" class="form-label">New category (optional)</label>
-		<input type="text" name="new_category" class="form-control" id="newCategoryInput" value="<?php echo set_value('new_category'); ?>" placeholder="e.g. Portable Ops" autocomplete="off">
-		<small class="text-muted">If filled, this will be used instead of the selected category.</small>
-	</div>
-
-	<div class="mb-3 border rounded p-3 bg-light">
-		<div class="fw-semibold mb-2">Station Diary Visibility</div>
-		<?php if (isset($public_station_diary_enabled) && !$public_station_diary_enabled) { ?>
-			<div class="alert alert-warning mb-2">Public Station Diary is globally disabled. Entries will remain private.</div>
-		<?php } ?>
-		<div class="form-check mb-2">
-			<input class="form-check-input" type="checkbox" value="1" id="isPublicEntry" name="is_public" <?php echo set_value('is_public') ? 'checked' : ''; ?> <?php echo (isset($public_station_diary_enabled) && !$public_station_diary_enabled) ? 'disabled' : ''; ?>>
-			<label class="form-check-label" for="isPublicEntry">🌍 Public entry (only applies to category "Station Diary")</label>
-		</div>
-		<div class="form-check mb-2">
-			<input class="form-check-input" type="checkbox" value="1" id="includeQsoSummary" name="include_qso_summary" <?php echo set_value('include_qso_summary') ? 'checked' : ''; ?> <?php echo (isset($public_station_diary_enabled) && !$public_station_diary_enabled) ? 'disabled' : ''; ?>>
-			<label class="form-check-label" for="includeQsoSummary">Include QSO summary block on public page</label>
-		</div>
-		<div class="mb-0" id="logbookSelectorContainer" style="<?php echo set_value('include_qso_summary') ? '' : 'display:none;'; ?>">
-			<label for="logbookSelect" class="form-label small text-muted">Select Logbook <span class="text-danger">*</span></label>
-			<select name="logbook_id" class="form-select form-select-sm" id="logbookSelect" required>
-				<option value="">-- Choose a logbook --</option>
-				<?php if (isset($user_logbooks) && $user_logbooks->num_rows() > 0) {
-					foreach ($user_logbooks->result() as $logbook) { ?>
-						<option value="<?php echo $logbook->logbook_id; ?>" <?php echo set_value('logbook_id') == $logbook->logbook_id ? 'selected' : ''; ?>><?php echo htmlspecialchars($logbook->logbook_name, ENT_QUOTES); ?></option>
-					<?php }
-				} ?>
+	<div class="row mb-3">
+		<div class="col-md-6">
+			<label for="catSelect" class="form-label fw-semibold"><?php echo lang('notes_input_category'); ?></label>
+			<select name="category" class="form-select" id="catSelect">
+				<?php foreach ($categoryOptions as $catOption) { ?>
+				<option value="<?php echo $catOption; ?>" <?php echo ($selectedCategory === $catOption) ? 'selected' : ''; ?>><?php echo $catOption; ?></option>
+				<?php } ?>
 			</select>
-			<small class="text-muted">QSO summary will be filtered to this logbook</small>
+			<small class="text-muted">Select existing or create new below</small>
+		</div>
+		<div class="col-md-6">
+			<label for="newCategoryInput" class="form-label fw-semibold">New category <span class="badge bg-secondary">Optional</span></label>
+			<input type="text" name="new_category" class="form-control" id="newCategoryInput" value="<?php echo set_value('new_category'); ?>" placeholder="e.g. Portable Ops" autocomplete="off">
+			<small class="text-muted">Overrides selected category</small>
 		</div>
 	</div>
 
-	<div class="mb-3 border rounded p-3 bg-light">
-		<div class="fw-semibold mb-2">QSO Summary Filters (optional)</div>
-		<p class="small text-muted mb-3">When a QSO summary is included, these filters control which QSOs are displayed:</p>
-		
-		<div class="row g-3">
-			<div class="col-md-6">
-				<label for="qsoDateStart" class="form-label">QSO Date Range Start</label>
-				<input type="date" class="form-control" id="qsoDateStart" name="qso_date_start" value="<?php echo set_value('qso_date_start'); ?>">
-				<small class="text-muted">Leave empty to show all QSOs from the entry date forward</small>
-			</div>
-			<div class="col-md-6">
-				<label for="qsoDateEnd" class="form-label">QSO Date Range End</label>
-				<input type="date" class="form-control" id="qsoDateEnd" name="qso_date_end" value="<?php echo set_value('qso_date_end'); ?>">
-				<small class="text-muted">Leave empty to show QSOs through today</small>
-			</div>
-		</div>
-		
-		<div class="mt-3">
-			<div class="form-check">
-				<input class="form-check-input" type="checkbox" value="1" id="qsoSatelliteOnly" name="qso_satellite_only" <?php echo set_value('qso_satellite_only') ? 'checked' : ''; ?>>
-				<label class="form-check-label" for="qsoSatelliteOnly">
-					<i class="fas fa-satellite me-1"></i>Show satellite QSOs only
-				</label>
-			</div>
-			<small class="text-muted d-block mt-2">When checked, only QSOs with propagation mode "SAT" will be displayed</small>
-		</div>
-	</div>
-
-	<div class="mb-3">
-		<label for="diaryImages" class="form-label">Diary images (optional)</label>
-		<input type="file" class="form-control" id="diaryImages" name="diary_images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
-		<small class="text-muted">Max 2 MB per image. Images are resized and compressed automatically.</small>
-	</div>
-
-	<div class="mb-3">
-		<label for="hiddenArea" class="form-label"><?php echo lang('notes_input_notes_content'); ?></label>
+	<!-- Note Content -->
+	<div class="mb-4">
+		<label for="hiddenArea" class="form-label fw-semibold"><?php echo lang('notes_input_notes_content'); ?></label>
 		<div id="quillArea"></div>
 		<textarea name="content" style="display:none" id="hiddenArea"></textarea>
 	</div>
 
-	<div class="d-flex flex-wrap gap-2">
-		<button type="submit" value="Submit" class="btn btn-primary"><?php echo lang('notes_input_btn_save_note'); ?></button>
-		<a href="<?php echo site_url('notes'); ?>" class="btn btn-outline-secondary"><?php echo lang('general_word_cancel') ?: 'Cancel'; ?></a>
+	<!-- Accordion for Optional Settings -->
+	<div class="accordion mb-4" id="noteSettingsAccordion">
+		
+		<!-- Station Diary Settings -->
+		<div class="accordion-item">
+			<h2 class="accordion-header" id="headingVisibility">
+				<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVisibility" aria-expanded="false" aria-controls="collapseVisibility">
+					<i class="fas fa-eye me-2"></i> Station Diary Settings
+				</button>
+			</h2>
+			<div id="collapseVisibility" class="accordion-collapse collapse" aria-labelledby="headingVisibility" data-bs-parent="#noteSettingsAccordion">
+				<div class="accordion-body">
+					<?php if (isset($public_station_diary_enabled) && !$public_station_diary_enabled) { ?>
+						<div class="alert alert-warning mb-3">Public Station Diary is globally disabled. Entries will remain private.</div>
+					<?php } ?>
+					<div class="form-check mb-3">
+						<input class="form-check-input" type="checkbox" value="1" id="isPublicEntry" name="is_public" <?php echo set_value('is_public') ? 'checked' : ''; ?> <?php echo (isset($public_station_diary_enabled) && !$public_station_diary_enabled) ? 'disabled' : ''; ?>>
+						<label class="form-check-label" for="isPublicEntry">
+							<strong>🌍 Make entry public</strong>
+							<small class="d-block text-muted">Only applies to "Station Diary" category</small>
+						</label>
+					</div>
+					<div class="form-check mb-3">
+						<input class="form-check-input" type="checkbox" value="1" id="includeQsoSummary" name="include_qso_summary" <?php echo set_value('include_qso_summary') ? 'checked' : ''; ?> <?php echo (isset($public_station_diary_enabled) && !$public_station_diary_enabled) ? 'disabled' : ''; ?>>
+						<label class="form-check-label" for="includeQsoSummary">
+							<strong>Include QSO summary</strong>
+							<small class="d-block text-muted">Shows contact statistics on public page</small>
+						</label>
+					</div>
+					<div id="logbookSelectorContainer" style="<?php echo set_value('include_qso_summary') ? '' : 'display:none;'; ?>">
+						<label for="logbookSelect" class="form-label">Logbook <span class="text-danger">*</span></label>
+						<select name="logbook_id" class="form-select" id="logbookSelect" required>
+							<option value="">-- Choose a logbook --</option>
+							<?php if (isset($user_logbooks) && $user_logbooks->num_rows() > 0) {
+								foreach ($user_logbooks->result() as $logbook) { ?>
+									<option value="<?php echo $logbook->logbook_id; ?>" <?php echo set_value('logbook_id') == $logbook->logbook_id ? 'selected' : ''; ?>><?php echo htmlspecialchars($logbook->logbook_name, ENT_QUOTES); ?></option>
+								<?php }
+							} ?>
+						</select>
+						<small class="text-muted">QSO summary filtered to this logbook</small>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- QSO Filters -->
+		<div class="accordion-item">
+			<h2 class="accordion-header" id="headingFilters">
+				<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
+					<i class="fas fa-filter me-2"></i> QSO Summary Filters
+				</button>
+			</h2>
+			<div id="collapseFilters" class="accordion-collapse collapse" aria-labelledby="headingFilters" data-bs-parent="#noteSettingsAccordion">
+				<div class="accordion-body">
+					<p class="text-muted mb-3">Control which QSOs appear in the summary:</p>
+					<div class="row g-3 mb-3">
+						<div class="col-md-6">
+							<label for="qsoDateStart" class="form-label">Date Range Start</label>
+							<input type="date" class="form-control" id="qsoDateStart" name="qso_date_start" value="<?php echo set_value('qso_date_start'); ?>">
+							<small class="text-muted">Leave empty for entry date</small>
+						</div>
+						<div class="col-md-6">
+							<label for="qsoDateEnd" class="form-label">Date Range End</label>
+							<input type="date" class="form-control" id="qsoDateEnd" name="qso_date_end" value="<?php echo set_value('qso_date_end'); ?>">
+							<small class="text-muted">Leave empty for today</small>
+						</div>
+					</div>
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" value="1" id="qsoSatelliteOnly" name="qso_satellite_only" <?php echo set_value('qso_satellite_only') ? 'checked' : ''; ?>>
+						<label class="form-check-label" for="qsoSatelliteOnly">
+							<i class="fas fa-satellite me-1"></i>Satellite QSOs only
+						</label>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Images -->
+		<div class="accordion-item">
+			<h2 class="accordion-header" id="headingImages">
+				<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseImages" aria-expanded="false" aria-controls="collapseImages">
+					<i class="fas fa-image me-2"></i> Images
+				</button>
+			</h2>
+			<div id="collapseImages" class="accordion-collapse collapse" aria-labelledby="headingImages" data-bs-parent="#noteSettingsAccordion">
+				<div class="accordion-body">
+					<label for="diaryImages" class="form-label fw-semibold">Add images</label>
+					<input type="file" class="form-control" id="diaryImages" name="diary_images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+					<small class="text-muted d-block">Max 2 MB per image. Auto-resized and compressed.</small>
+					<div class="alert alert-info mt-3 small">
+						<strong>💡 Tip:</strong> After creating this note, edit it to see image IDs and add captions. Then you can use shortcodes like <code>[image:ID]</code> to display images inline in your text.
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="d-flex flex-wrap gap-2 sticky-bottom bg-white py-3 border-top">
+		<button type="submit" value="Submit" class="btn btn-primary btn-lg">
+			<i class="fas fa-save me-2"></i><?php echo lang('notes_input_btn_save_note'); ?>
+		</button>
+		<a href="<?php echo site_url('notes'); ?>" class="btn btn-outline-secondary btn-lg">
+			<i class="fas fa-times me-2"></i><?php echo lang('general_word_cancel') ?: 'Cancel'; ?>
+		</a>
 	</div>
 	</form>
 

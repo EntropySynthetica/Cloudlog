@@ -56,64 +56,101 @@
 						<textarea name="content" style="display:none" id="quickHiddenArea"></textarea>
 					</div>
 
-					<div class="mb-3 border rounded p-3 bg-light">
-						<div class="fw-semibold mb-3"><i class="fas fa-globe"></i> Public Diary Options</div>
-						<div class="form-check mb-2">
-							<input class="form-check-input" type="checkbox" value="1" id="quickIsPublic" name="is_public">
-							<label class="form-check-label" for="quickIsPublic">
-								<span class="badge bg-success me-1">Public</span> Make this entry visible on Station Diary
-							</label>
-						</div>
-						<div class="form-check mb-3">
-							<input class="form-check-input" type="checkbox" value="1" id="quickIncludeQso" name="include_qso_summary">
-							<label class="form-check-label" for="quickIncludeQso">
-								<i class="fas fa-list-ul me-1"></i> Include QSO summary for today
-							</label>
-						</div>
-						<div class="mb-0 ms-4" id="quickLogbookSelector" style="display:none;">
-							<label for="quickLogbookSelect" class="form-label small mb-1">Select logbook <span class="text-danger">*</span></label>
-						<select name="logbook_id" class="form-select form-select-sm" id="quickLogbookSelect">
-								<option value="">-- Choose a logbook --</option>
-								<?php 
-								$this->load->model('logbooks_model');
-								$user_logbooks = $this->logbooks_model->show_all();
-								if ($user_logbooks->num_rows() > 0) {
-									foreach ($user_logbooks->result() as $logbook) { ?>
-										<option value="<?php echo $logbook->logbook_id; ?>"><?php echo htmlspecialchars($logbook->logbook_name, ENT_QUOTES); ?></option>
-									<?php }
-								} ?>
-							</select>
-							<small class="form-text text-muted">QSO summary will be filtered to this logbook</small>
-							
-							<div class="mt-3 pt-3 border-top">
-								<label class="form-label small fw-semibold mb-2">QSO Filters (optional)</label>
-								<div class="row g-2 mb-2">
-									<div class="col-6">
-										<label for="quickQsoDateStart" class="form-label small mb-1">Date Start</label>
-										<input type="date" class="form-control form-control-sm" id="quickQsoDateStart" name="qso_date_start">
+					<!-- Accordion for Optional Settings -->
+					<div class="accordion" id="quickNoteAccordion">
+						
+						<!-- Station Diary Settings -->
+						<div class="accordion-item">
+							<h2 class="accordion-header" id="headingQuickDiary">
+								<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseQuickDiary" aria-expanded="false" aria-controls="collapseQuickDiary">
+									<i class="fas fa-eye me-2"></i> Station Diary Settings
+								</button>
+							</h2>
+							<div id="collapseQuickDiary" class="accordion-collapse collapse" aria-labelledby="headingQuickDiary" data-bs-parent="#quickNoteAccordion">
+								<div class="accordion-body">
+									<div class="form-check mb-3">
+										<input class="form-check-input" type="checkbox" value="1" id="quickIsPublic" name="is_public">
+										<label class="form-check-label" for="quickIsPublic">
+											<strong>🌍 Make entry public</strong>
+											<small class="d-block text-muted">Visible on Station Diary page</small>
+										</label>
 									</div>
-									<div class="col-6">
-										<label for="quickQsoDateEnd" class="form-label small mb-1">Date End</label>
-										<input type="date" class="form-control form-control-sm" id="quickQsoDateEnd" name="qso_date_end">
+									<div class="form-check mb-3">
+										<input class="form-check-input" type="checkbox" value="1" id="quickIncludeQso" name="include_qso_summary">
+										<label class="form-check-label" for="quickIncludeQso">
+											<strong>Include QSO summary</strong>
+											<small class="d-block text-muted">Shows contact statistics</small>
+										</label>
+									</div>
+									<div id="quickLogbookSelector" style="display:none;">
+										<label for="quickLogbookSelect" class="form-label">Logbook <span class="text-danger">*</span></label>
+										<select name="logbook_id" class="form-select" id="quickLogbookSelect">
+											<option value="">-- Choose a logbook --</option>
+											<?php 
+											$this->load->model('logbooks_model');
+											$user_logbooks = $this->logbooks_model->show_all();
+											if ($user_logbooks->num_rows() > 0) {
+												foreach ($user_logbooks->result() as $logbook) { ?>
+													<option value="<?php echo $logbook->logbook_id; ?>"><?php echo htmlspecialchars($logbook->logbook_name, ENT_QUOTES); ?></option>
+												<?php }
+											} ?>
+										</select>
+										<small class="text-muted">QSO summary filtered to this logbook</small>
 									</div>
 								</div>
-								<div class="form-check">
-									<input class="form-check-input" type="checkbox" value="1" id="quickQsoSatOnly" name="qso_satellite_only">
-									<label class="form-check-label small" for="quickQsoSatOnly">
-										<i class="fas fa-satellite me-1"></i>Satellites only
-									</label>
-								</div>
-								<small class="form-text text-muted d-block mt-1">Leave dates empty to use entry date</small>
 							</div>
 						</div>
-					</div>
 
-					<div class="mb-0">
-						<label for="quickDiaryImages" class="form-label fw-semibold">
-							<i class="fas fa-image me-1"></i> Images <span class="badge bg-secondary">Optional</span>
-						</label>
-						<input type="file" class="form-control" id="quickDiaryImages" name="diary_images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
-						<small class="form-text text-muted">Maximum 2 MB per image</small>
+						<!-- QSO Filters -->
+						<div class="accordion-item">
+							<h2 class="accordion-header" id="headingQuickFilters">
+								<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseQuickFilters" aria-expanded="false" aria-controls="collapseQuickFilters">
+									<i class="fas fa-filter me-2"></i> QSO Summary Filters
+								</button>
+							</h2>
+							<div id="collapseQuickFilters" class="accordion-collapse collapse" aria-labelledby="headingQuickFilters" data-bs-parent="#quickNoteAccordion">
+								<div class="accordion-body">
+									<p class="text-muted small mb-3">Control which QSOs appear in the summary:</p>
+									<div class="row g-2 mb-3">
+										<div class="col-6">
+											<label for="quickQsoDateStart" class="form-label">Date Start</label>
+											<input type="date" class="form-control" id="quickQsoDateStart" name="qso_date_start">
+											<small class="text-muted">Leave empty for entry date</small>
+										</div>
+										<div class="col-6">
+											<label for="quickQsoDateEnd" class="form-label">Date End</label>
+											<input type="date" class="form-control" id="quickQsoDateEnd" name="qso_date_end">
+											<small class="text-muted">Leave empty for today</small>
+										</div>
+									</div>
+									<div class="form-check">
+										<input class="form-check-input" type="checkbox" value="1" id="quickQsoSatOnly" name="qso_satellite_only">
+										<label class="form-check-label" for="quickQsoSatOnly">
+											<i class="fas fa-satellite me-1"></i>Satellite QSOs only
+										</label>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Images -->
+						<div class="accordion-item">
+							<h2 class="accordion-header" id="headingQuickImages">
+								<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseQuickImages" aria-expanded="false" aria-controls="collapseQuickImages">
+									<i class="fas fa-image me-2"></i> Images
+								</button>
+							</h2>
+							<div id="collapseQuickImages" class="accordion-collapse collapse" aria-labelledby="headingQuickImages" data-bs-parent="#quickNoteAccordion">
+								<div class="accordion-body">
+									<label for="quickDiaryImages" class="form-label fw-semibold">Add images</label>
+									<input type="file" class="form-control" id="quickDiaryImages" name="diary_images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+									<small class="text-muted d-block">Max 2 MB per image. Auto-resized and compressed.</small>
+									<div class="alert alert-info mt-3 small mb-0">
+										<strong>💡 Tip:</strong> After saving, edit the note to see image IDs and add captions. Then use shortcodes like <code>[image:ID]</code> to display images inline.
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 
 					<input type="hidden" name="category" value="Station Diary">
