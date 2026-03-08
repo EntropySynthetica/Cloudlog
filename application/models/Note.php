@@ -486,7 +486,7 @@ class Note extends CI_Model {
 
 		$table = $this->config->item('table_name');
 
-		$this->db->select('COL_CALL, COL_TIME_ON, COL_BAND, COL_MODE, COL_SUBMODE, COL_COUNTRY, COL_GRIDSQUARE, COL_RST_SENT, COL_RST_RCVD, COL_FREQ, COL_DXCC, COL_DISTANCE');
+		$this->db->select('COL_CALL, COL_TIME_ON, COL_BAND, COL_MODE, COL_SUBMODE, COL_COUNTRY, COL_GRIDSQUARE, COL_RST_SENT, COL_RST_RCVD, COL_FREQ, COL_DXCC, COL_DISTANCE, COL_PROP_MODE, COL_SAT_NAME, COL_SAT_MODE');
 		$this->db->from($table);
 		$this->db->where_in('station_id', $station_ids);
 		$this->db->where('DATE(COL_TIME_ON)', $date);
@@ -618,7 +618,7 @@ class Note extends CI_Model {
 
 		$table = $this->config->item('table_name');
 
-		$this->db->select('COL_CALL, COL_TIME_ON, COL_BAND, COL_MODE, COL_SUBMODE, COL_COUNTRY, COL_GRIDSQUARE, COL_RST_SENT, COL_RST_RCVD, COL_FREQ, COL_DXCC, COL_DISTANCE, COL_PROP_MODE');
+		$this->db->select('COL_CALL, COL_TIME_ON, COL_BAND, COL_MODE, COL_SUBMODE, COL_COUNTRY, COL_GRIDSQUARE, COL_RST_SENT, COL_RST_RCVD, COL_FREQ, COL_DXCC, COL_DISTANCE, COL_PROP_MODE, COL_SAT_NAME, COL_SAT_MODE');
 		$this->db->from($table);
 		$this->db->where_in('station_id', $station_ids);
 		$this->db->where('DATE(COL_TIME_ON) >=', $start_date);
