@@ -320,6 +320,17 @@ class Notes extends CI_Controller {
 		$data['diary_entries'] = $this->note->list_all(null, $filters);
 		$data['page_title'] = "Station Diary";
 		
+		// Load diary images for all entries
+		$entry_ids = array();
+		foreach ($data['diary_entries']->result() as $entry) {
+			$entry_ids[] = (int)$entry->id;
+		}
+		if (!empty($entry_ids)) {
+			$data['diary_images'] = $this->note->get_diary_images($entry_ids);
+		} else {
+			$data['diary_images'] = array();
+		}
+		
 		// Load without header/footer for print formatting
 		$this->load->view('notes/station_diary_print', $data);
 	}
@@ -389,9 +400,13 @@ class Notes extends CI_Controller {
 			return;
 		}
 
+		$imageRow = $query->row();
+
 		// Update caption
 		$this->db->where('id', $imageId);
 		$this->db->update('diary_images', array('caption' => $caption));
+
+		$this->note->invalidate_public_diary_cache_for_note((int)$imageRow->diary_id, (int)$this->session->userdata('user_id'));
 
 		echo json_encode(array('success' => true));
 	}

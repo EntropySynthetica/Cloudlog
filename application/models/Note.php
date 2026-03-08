@@ -22,7 +22,39 @@ class Note extends CI_Model {
 	private function touch_public_diary_cache_version($user_id) {
 		$this->load->helper('file');
 		$cacheVersionFile = APPPATH . 'cache/station_diary_' . (int)$user_id . '_version.txt';
-		@write_file($cacheVersionFile, (string)microtime(TRUE));
+		$versionValue = (string)microtime(TRUE) . '_' . mt_rand(1000, 9999);
+
+		$written = @write_file($cacheVersionFile, $versionValue);
+		if ($written !== FALSE) {
+			return;
+		}
+
+		$written = @file_put_contents($cacheVersionFile, $versionValue, LOCK_EX);
+		if ($written !== FALSE) {
+			return;
+		}
+
+		$CI =& get_instance();
+		if (!isset($CI->cache)) {
+			$CI->load->driver('cache', array('adapter' => 'file'));
+		}
+		if (isset($CI->cache)) {
+			@($CI->cache->clean());
+		}
+	}
+
+	public function invalidate_public_diary_cache_for_note($note_id, $user_id = NULL) {
+		$this->db->select('id, user_id, cat, is_public');
+		$this->db->from('notes');
+		$this->db->where('id', (int)$note_id);
+		if ($user_id !== NULL) {
+			$this->db->where('user_id', (int)$user_id);
+		}
+		$note = $this->db->get()->row();
+
+		if ($note && $this->is_station_diary_category($note->cat) && (int)$note->is_public === 1) {
+			$this->touch_public_diary_cache_version((int)$note->user_id);
+		}
 	}
 
 	public function get_public_diary_cache_version($user_id) {
@@ -709,8 +741,12 @@ public function process_image_shortcodes($content, $images = array()) {
 	
 	$usedImageIds = array();
 	
-	// Match [image:identifier] or [image:identifier:modifier[:modifier...]]
-	$pattern = '/\[image:([^\]:]+)(?::([^\]]+))?\]/i';
+	// Normalize encoded square brackets in case content sanitizer encoded shortcode delimiters
+	$content = str_ireplace('&#91;image:', '[image:', $content);
+	$content = str_ireplace('&#93;', ']', $content);
+
+	// Match [image:identifier] or [image:identifier:modifier[:modifier...]] (spaces tolerated)
+	$pattern = '/\[\s*image\s*:\s*([^\]:]+?)\s*(?::\s*([^\]]+))?\]/i';
 	
 	$content = preg_replace_callback($pattern, function($matches) use ($images, &$usedImageIds) {
 		$identifier = trim($matches[1]);
@@ -747,40 +783,61 @@ public function process_image_shortcodes($content, $images = array()) {
 		// Determine CSS classes based on modifiers
 		$wrapperClass = 'diary-inline-image mb-3';
 		$imgClass = 'img-fluid rounded';
-		$style = '';
+		$styles = array();
+		$align = '';
+		$size = '';
 		
 		if (!empty($modifierString)) {
 			$modifiers = array_filter(array_map('trim', explode(':', strtolower($modifierString))));
 			
 			foreach ($modifiers as $mod) {
 				if ($mod === 'left') {
-					$wrapperClass .= ' float-start me-3';
-					if (empty($style)) {
-						$style = 'max-width: 400px;';
-					}
+					$align = 'left';
 				} elseif ($mod === 'right') {
-					$wrapperClass .= ' float-end ms-3';
-					if (empty($style)) {
-						$style = 'max-width: 400px;';
-					}
+					$align = 'right';
 				} elseif ($mod === 'center') {
-					$wrapperClass .= ' text-center mx-auto';
+					$align = 'center';
 				}
 			}
 
 			foreach ($modifiers as $mod) {
 				if ($mod === 'small') {
-					$style = 'max-width: 300px;';
+					$size = 'small';
 				} elseif ($mod === 'medium') {
-					$style = 'max-width: 500px;';
+					$size = 'medium';
 				} elseif ($mod === 'large') {
-					$style = 'max-width: 800px;';
+					$size = 'large';
 				}
 			}
 		}
+
+		// Apply alignment classes/styles
+		if ($align === 'left') {
+			$wrapperClass .= ' float-start me-3';
+			$styles[] = 'max-width: 400px';
+		} elseif ($align === 'right') {
+			$wrapperClass .= ' float-end ms-3';
+			$styles[] = 'max-width: 400px';
+		} elseif ($align === 'center') {
+			$wrapperClass .= ' text-center';
+			$styles[] = 'margin-left: auto';
+			$styles[] = 'margin-right: auto';
+		}
+
+		// Apply size after alignment defaults so explicit size wins
+		if ($size === 'small') {
+			$styles = array_values(array_filter($styles, function($s) { return stripos($s, 'max-width:') !== 0; }));
+			$styles[] = 'max-width: 300px';
+		} elseif ($size === 'medium') {
+			$styles = array_values(array_filter($styles, function($s) { return stripos($s, 'max-width:') !== 0; }));
+			$styles[] = 'max-width: 500px';
+		} elseif ($size === 'large') {
+			$styles = array_values(array_filter($styles, function($s) { return stripos($s, 'max-width:') !== 0; }));
+			$styles[] = 'max-width: 800px';
+		}
 		
 		// Build the HTML
-		$html = '<div class="' . $wrapperClass . '"' . (!empty($style) ? ' style="' . $style . '"' : '') . '>';
+		$html = '<div class="' . $wrapperClass . '"' . (!empty($styles) ? ' style="' . implode('; ', $styles) . '"' : '') . '>';
 		$html .= '<img src="' . base_url() . ltrim($image->filename, '/') . '" alt="' . htmlspecialchars($image->caption ?? 'Diary image', ENT_QUOTES) . '" class="' . $imgClass . '">';
 		if (!empty($image->caption)) {
 			$html .= '<div class="small text-muted mt-1">' . htmlspecialchars($image->caption, ENT_QUOTES) . '</div>';

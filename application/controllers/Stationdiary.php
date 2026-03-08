@@ -27,7 +27,8 @@ class Stationdiary extends CI_Controller {
 		$cleanCallsign = strtoupper($resolution['callsign']);
 		$pageOffset = is_numeric($offset) ? (int)$offset : 0;
 		$cacheVersion = $this->note->get_public_diary_cache_version($user_id);
-		$cacheKey = 'public_station_diary_' . md5($cleanCallsign . '_' . $pageOffset . '_' . $cacheVersion);
+		$renderVersion = 'public_diary_render_v2';
+		$cacheKey = 'public_station_diary_' . md5($cleanCallsign . '_' . $pageOffset . '_' . $cacheVersion . '_' . $renderVersion);
 
 		$cachedHtml = $this->cache->get($cacheKey);
 		if ($cachedHtml !== FALSE && !empty($cachedHtml)) {
