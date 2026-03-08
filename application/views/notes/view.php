@@ -11,6 +11,9 @@
 								<?php if (!empty($row->cat)) { ?>
 									<span class="badge bg-secondary"><?php echo $row->cat; ?></span>
 								<?php } ?>
+								<?php if (strtoupper(trim((string)$row->cat)) === 'STATION DIARY') { ?>
+									<span class="badge <?php echo ((int)($row->is_public ?? 0) === 1) ? 'bg-success' : 'bg-dark'; ?>"><?php echo ((int)($row->is_public ?? 0) === 1) ? '🌍 Public' : '🔒 Private'; ?></span>
+								<?php } ?>
 							</div>
 							<h2 class="card-title mb-0"><?php echo $row->title; ?></h2>
 						</div>
@@ -28,6 +31,16 @@
 					<div class="note-content lh-base">
 						<?php echo nl2br($row->note); ?>
 					</div>
+					<?php $entryImages = isset($diary_images[$row->id]) ? $diary_images[$row->id] : array(); ?>
+					<?php if (!empty($entryImages)) { ?>
+						<div class="row g-3 mt-1">
+							<?php foreach ($entryImages as $image) { ?>
+								<div class="col-md-4">
+									<img src="<?php echo base_url() . ltrim($image->filename, '/'); ?>" class="img-fluid rounded border" alt="Diary image">
+								</div>
+							<?php } ?>
+						</div>
+					<?php } ?>
 				</div>
 				<div class="card-footer bg-transparent pt-0 border-0">
 					<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">

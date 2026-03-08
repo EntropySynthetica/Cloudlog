@@ -15,6 +15,11 @@
 						</ul>
 					</div>
 					<div class="ms-auto"> <?php if (isset($has_diary_entries) && $has_diary_entries) { ?>
+						<?php if (isset($public_station_diary_enabled) && $public_station_diary_enabled && !empty($public_diary_url)) { ?>
+							<a href="<?php echo $public_diary_url; ?>" target="_blank" class="btn btn-outline-primary btn-sm me-2" title="Open your public station diary page">
+								<i class="fas fa-globe"></i> Public Diary
+							</a>
+						<?php } ?>
 							<a href="<?php echo site_url('notes/station_diary'); ?>" target="_blank" class="btn btn-outline-secondary btn-sm me-2" title="Print and view all Station Diary entries">
 								<i class="fas fa-book"></i> Station Diary
 							</a>
@@ -71,6 +76,8 @@
 								$excerpt = mb_substr($plain, 0, 140) . (mb_strlen($plain) > 140 ? '…' : '');
 								$catLink = !empty($row->cat) ? site_url('notes') . '?category=' . rawurlencode($row->cat) : '';
 								$createdDate = (is_null($row->created_at) || $row->created_at === '' || $row->created_at === '0000-00-00 00:00:00') ? 'N/A' : date('M d, Y \a\t g:i A', strtotime($row->created_at));
+									$isStationDiary = strtoupper(trim((string)$row->cat)) === 'STATION DIARY';
+									$isPublicDiary = $isStationDiary && isset($row->is_public) && (int)$row->is_public === 1;
 							?>
 								<li class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
 									<div class="me-md-3 flex-grow-1">
@@ -79,6 +86,9 @@
 											<?php if (!empty($row->cat)) { ?>
 												<a class="badge bg-secondary align-middle text-decoration-none" href="<?php echo $catLink; ?>"><?php echo htmlspecialchars($row->cat, ENT_QUOTES); ?></a>
 											<?php } ?>
+												<?php if ($isStationDiary) { ?>
+													<span class="badge <?php echo $isPublicDiary ? 'bg-success' : 'bg-dark'; ?> align-middle"><?php echo $isPublicDiary ? '🌍 Public' : '🔒 Private'; ?></span>
+												<?php } ?>
 											<small class="text-muted"><?php echo $createdDate; ?></small>
 										</div>
 										<?php if (!empty($excerpt)) { ?>
