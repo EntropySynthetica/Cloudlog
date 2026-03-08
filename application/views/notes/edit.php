@@ -78,9 +78,9 @@ $selectedCategory = set_value('category', $row->cat);
 			<label class="form-check-label" for="includeQsoSummary">Include QSO summary block on public page</label>
 		</div>
 		<div class="mb-0" id="logbookSelectorContainer" style="<?php echo set_value('include_qso_summary', ((int)($row->include_qso_summary ?? 0) === 1 ? '1' : '')) ? '' : 'display:none;'; ?>">
-			<label for="logbookSelect" class="form-label small text-muted">QSO Logbook (optional)</label>
-			<select name="logbook_id" class="form-select form-select-sm" id="logbookSelect">
-				<option value="">All logbooks</option>
+			<label for="logbookSelect" class="form-label small text-muted">Select Logbook <span class="text-danger">*</span></label>
+			<select name="logbook_id" class="form-select form-select-sm" id="logbookSelect" required>
+				<option value="">-- Choose a logbook --</option>
 				<?php if (isset($user_logbooks) && $user_logbooks->num_rows() > 0) {
 					$selected_logbook = set_value('logbook_id', $row->logbook_id ?? '');
 					foreach ($user_logbooks->result() as $logbook) { ?>
@@ -88,7 +88,7 @@ $selectedCategory = set_value('category', $row->cat);
 					<?php }
 				} ?>
 			</select>
-			<small class="text-muted">Select a specific logbook to filter QSOs, or leave as "All logbooks"</small>
+			<small class="text-muted">QSO summary will be filtered to this logbook</small>
 		</div>
 	</div>
 
@@ -170,22 +170,36 @@ $selectedCategory = set_value('category', $row->cat);
 			var isPublicEntry = document.getElementById('isPublicEntry');
 			var includeQsoSummary = document.getElementById('includeQsoSummary');
 			var logbookSelectorContainer = document.getElementById('logbookSelectorContainer');
-			var visibilityStatusBadge = document.getElementById('visibilityStatusBadge');
-			var confirmModalEl = document.getElementById('confirmPublicModal');
-			var confirmModalProceed = document.getElementById('confirmPublicModalProceed');
-			
-			// Toggle logbook selector visibility
-			if (includeQsoSummary && logbookSelectorContainer) {
-				includeQsoSummary.addEventListener('change', function() {
-					logbookSelectorContainer.style.display = includeQsoSummary.checked ? 'block' : 'none';
-				});
+		var logbookSelect = document.getElementById('logbookSelect');
+		var visibilityStatusBadge = document.getElementById('visibilityStatusBadge');
+		var confirmModalEl = document.getElementById('confirmPublicModal');
+		var confirmModalProceed = document.getElementById('confirmPublicModalProceed');
+		
+		// Toggle logbook selector visibility and required attribute
+		if (includeQsoSummary && logbookSelectorContainer && logbookSelect) {
+			// Set initial state based on checkbox
+			if (includeQsoSummary.checked) {
+				logbookSelect.setAttribute('required', 'required');
+			} else {
+				logbookSelect.removeAttribute('required');
 			}
 			
-			if (!isPublicEntry) {
-				return;
-			}
+			includeQsoSummary.addEventListener('change', function() {
+				if (includeQsoSummary.checked) {
+					logbookSelectorContainer.style.display = 'block';
+					logbookSelect.setAttribute('required', 'required');
+				} else {
+					logbookSelectorContainer.style.display = 'none';
+					logbookSelect.removeAttribute('required');
+				}
+			});
+		}
+		
+		if (!isPublicEntry) {
+			return;
+		}
 
-			function updateVisibilityBadge() {
+		function updateVisibilityBadge() {
 				if (!visibilityStatusBadge) {
 					return;
 				}

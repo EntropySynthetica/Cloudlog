@@ -462,13 +462,13 @@ class Note extends CI_Model {
 		$overview = $this->db->get()->row();
 
 		$this->db->distinct();
-		$this->db->select('LOWER(COL_BAND) AS band');
-		$this->db->from($table);
-		$this->db->where_in('station_id', $station_ids);
-		$this->db->where('DATE(COL_TIME_ON)', $date);
-		$this->db->where('COL_BAND IS NOT NULL', null, FALSE);
-		$this->db->where('COL_BAND !=', '');
-		$this->db->order_by('COL_BAND+0', 'ASC', FALSE);
+	$this->db->select('LOWER(COL_BAND) AS band, COL_BAND+0 AS band_num', FALSE);
+	$this->db->from($table);
+	$this->db->where_in('station_id', $station_ids);
+	$this->db->where('DATE(COL_TIME_ON)', $date);
+	$this->db->where('COL_BAND IS NOT NULL', null, FALSE);
+	$this->db->where('COL_BAND !=', '');
+	$this->db->order_by('band_num', 'ASC');
 		$bandsResult = $this->db->get()->result();
 
 		$this->db->distinct();

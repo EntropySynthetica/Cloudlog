@@ -71,9 +71,9 @@
 							</label>
 						</div>
 						<div class="mb-0 ms-4" id="quickLogbookSelector" style="display:none;">
-							<label for="quickLogbookSelect" class="form-label small mb-1">Filter by logbook</label>
-							<select name="logbook_id" class="form-select form-select-sm" id="quickLogbookSelect">
-								<option value="">All logbooks</option>
+							<label for="quickLogbookSelect" class="form-label small mb-1">Select logbook <span class="text-danger">*</span></label>
+							<select name="logbook_id" class="form-select form-select-sm" id="quickLogbookSelect" required>
+								<option value="">-- Choose a logbook --</option>
 								<?php 
 								$this->load->model('logbooks_model');
 								$user_logbooks = $this->logbooks_model->show_all();
@@ -83,6 +83,7 @@
 									<?php }
 								} ?>
 							</select>
+							<small class="form-text text-muted">QSO summary will be filtered to this logbook</small>
 						</div>
 					</div>
 
@@ -113,11 +114,13 @@
 document.addEventListener('DOMContentLoaded', function() {
 	var quickIncludeQso = document.getElementById('quickIncludeQso');
 	var quickLogbookSelector = document.getElementById('quickLogbookSelector');
+	var quickLogbookSelect = document.getElementById('quickLogbookSelect');
 	
-	if (quickIncludeQso && quickLogbookSelector) {
+	if (quickIncludeQso && quickLogbookSelector && quickLogbookSelect) {
 		quickIncludeQso.addEventListener('change', function() {
 			if (quickIncludeQso.checked) {
 				quickLogbookSelector.style.display = 'block';
+				quickLogbookSelect.setAttribute('required', 'required');
 				// Fade in effect
 				quickLogbookSelector.style.opacity = '0';
 				setTimeout(function() {
@@ -125,6 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					quickLogbookSelector.style.opacity = '1';
 				}, 10);
 			} else {
+				quickLogbookSelect.removeAttribute('required');
 				quickLogbookSelector.style.opacity = '0';
 				setTimeout(function() {
 					quickLogbookSelector.style.display = 'none';
