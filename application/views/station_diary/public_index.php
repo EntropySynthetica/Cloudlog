@@ -228,7 +228,9 @@
 				$CI =& get_instance();
 				$CI->load->model('note');
 				$processed = $CI->note->process_image_shortcodes($entry->note, $entry->images);
+				// Remove empty <p><br></p> tags and <br> tags between paragraph tags
 				$processedNote = preg_replace('/<p><br\s*\/?><\/p>/i', '', $processed['content']);
+				$processedNote = preg_replace('/<\/p>\s*<br\s*\/?>\s*<p>/i', '</p><p>', $processedNote);
 				$usedImageIds = $processed['used_image_ids'];
 				
 				// Filter out images that were used inline
