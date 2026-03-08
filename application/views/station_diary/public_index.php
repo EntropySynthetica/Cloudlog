@@ -276,7 +276,7 @@
 												<table class="table table-sm table-striped">
 													<thead>
 														<tr>
-															<th>Time</th>
+															<th>Date/Time</th>
 															<th>Call</th>
 															<th>Band</th>
 															<th>Mode</th>
@@ -287,7 +287,7 @@
 													<tbody class="qso-table-body">
 														<?php foreach ($entry->qso_list as $qso) { ?>
 															<tr>
-																<td><?php echo date('H:i', strtotime($qso->COL_TIME_ON)); ?></td>
+																<td><?php echo date('Y-m-d H:i', strtotime($qso->COL_TIME_ON)); ?></td>
 																<td><strong><?php echo htmlspecialchars($qso->COL_CALL, ENT_QUOTES); ?></strong></td>
 																<td><?php echo htmlspecialchars($qso->COL_BAND ?? '-', ENT_QUOTES); ?></td>
 																<td><?php echo htmlspecialchars(!empty($qso->COL_SUBMODE) ? $qso->COL_SUBMODE : $qso->COL_MODE, ENT_QUOTES); ?></td>
@@ -381,9 +381,12 @@
 						const tbody = container.querySelector('.qso-table-body');
 						if (tbody && data.qso_list.length > 0) {
 							tbody.innerHTML = data.qso_list.map(qso => {
-								const timeStr = new Date(qso.COL_TIME_ON).toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+								const qsoDate = new Date(qso.COL_TIME_ON);
+								const dateStr = qsoDate.toLocaleDateString('en-GB');
+								const timeStr = qsoDate.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+								const dateTimeStr = `${dateStr} ${timeStr}`;
 								const ent = (text) => (text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-								return `<tr><td>${timeStr}</td><td><strong>${ent(qso.COL_CALL)}</strong></td><td>${ent(qso.COL_BAND || '-')}</td><td>${ent((qso.COL_SUBMODE || qso.COL_MODE) || '-')}</td><td>${ent(qso.COL_COUNTRY || '-')}</td><td>${ent(qso.COL_GRIDSQUARE || '-')}</td></tr>`;
+								return `<tr><td>${dateTimeStr}</td><td><strong>${ent(qso.COL_CALL)}</strong></td><td>${ent(qso.COL_BAND || '-')}</td><td>${ent((qso.COL_SUBMODE || qso.COL_MODE) || '-')}</td><td>${ent(qso.COL_COUNTRY || '-')}</td><td>${ent(qso.COL_GRIDSQUARE || '-')}</td></tr>`;
 							}).join('');
 						} else if (tbody) {
 							tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No QSOs match the selected filters</td></tr>';
