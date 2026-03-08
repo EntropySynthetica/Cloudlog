@@ -6,9 +6,13 @@
 	<title><?php echo htmlspecialchars($page_title ?? 'Station Diary', ENT_QUOTES); ?></title>
 	<link rel="stylesheet" href="<?php echo base_url(); ?>assets/css/bootstrap.min.css">
 	<link rel="stylesheet" href="<?php echo base_url(); ?>assets/fontawesome/css/all.css">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 	<style>
 		body {
 			background: #efefef;
+			font-family: 'Lora', Georgia, serif;
 		}
 
 		.diary-shell {
@@ -49,9 +53,9 @@
 		}
 
 		.diary-title {
-			font-family: Georgia, "Times New Roman", serif;
+			font-family: 'Merriweather', Georgia, serif;
 			font-size: 2.6rem;
-			font-weight: 700;
+			font-weight: 900;
 			text-align: center;
 			color: #2f3a56;
 			line-height: 1.2;
@@ -71,7 +75,7 @@
 		}
 
 		.diary-entry-title {
-			font-family: Georgia, "Times New Roman", serif;
+			font-family: 'Merriweather', Georgia, serif;
 			font-size: 2rem;
 			font-weight: 700;
 			color: #2f3a56;
@@ -88,7 +92,7 @@
 		.note-content {
 			color: #44506b;
 			font-size: 1.12rem;
-			line-height: 1.7;
+			line-height: 1.8;
 		}
 
 		.note-content p:last-child { margin-bottom: 0; }
@@ -110,18 +114,7 @@
 			font-size: 1.45rem;
 			font-weight: 700;
 			color: #2f4f73;
-			font-family: Georgia, "Times New Roman", serif;
-		}
-
-		.diary-qso-box details summary {
-			outline: none;
-		}
-
-		.diary-qso-box details[open] summary {
-			margin-bottom: 0.5rem;
-		}
-
-		.diary-qso-box .table {
+		font-family: 'Merriweather', Georgia, serif;
 			font-size: 0.9rem;
 			margin-bottom: 0;
 		}

@@ -96,7 +96,6 @@ class Stationdiary extends CI_Controller {
 		$this->output->set_content_type('application/rss+xml; charset=UTF-8');
 		$this->load->view('station_diary/rss', array(
 			'callsign' => $cleanCallsign,
-			'entries' => $entries,
-		));
+			'entries' => $entries,		'feed_url' => site_url('station-diary/' . rawurlencode($cleanCallsign) . '/rss'),		));
 	}
 }
