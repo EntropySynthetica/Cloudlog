@@ -1,3 +1,111 @@
+<style>
+#quickQuillArea .ql-editor {
+	font-size: 1rem;
+	line-height: 1.6;
+	padding: 1.5rem;
+}
+
+#quickQuillArea .ql-editor p {
+	margin-bottom: 1rem;
+}
+
+#quickQuillArea .ql-editor h1,
+#quickQuillArea .ql-editor h2,
+#quickQuillArea .ql-editor h3,
+#quickQuillArea .ql-editor h4,
+#quickQuillArea .ql-editor h5,
+#quickQuillArea .ql-editor h6 {
+	margin-top: 1.5rem;
+	margin-bottom: 0.75rem;
+	line-height: 1.3;
+	font-weight: 600;
+}
+
+#quickQuillArea .ql-editor h1:first-child,
+#quickQuillArea .ql-editor h2:first-child,
+#quickQuillArea .ql-editor h3:first-child,
+#quickQuillArea .ql-editor h4:first-child,
+#quickQuillArea .ql-editor h5:first-child,
+#quickQuillArea .ql-editor h6:first-child {
+	margin-top: 0;
+}
+
+#quickQuillArea .ql-editor ul,
+#quickQuillArea .ql-editor ol {
+	margin-bottom: 1rem;
+	padding-left: 2rem;
+}
+
+#quickQuillArea .ql-editor li {
+	margin-bottom: 0.5rem;
+}
+
+#quickQuillArea .ql-editor li p {
+	margin-bottom: 0.25rem;
+}
+
+#quickQuillArea .ql-editor blockquote {
+	border-left: 4px solid #ddd;
+	margin: 1.5rem 0;
+	padding: 0.75rem 1rem;
+	background-color: #f9f9f9;
+	font-style: italic;
+	color: #666;
+}
+
+#quickQuillArea .ql-editor pre {
+	background-color: #f5f5f5;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 1rem;
+	margin: 1rem 0;
+	overflow-x: auto;
+}
+
+#quickQuillArea .ql-editor code {
+	background-color: #f5f5f5;
+	padding: 0.2rem 0.4rem;
+	border-radius: 3px;
+	font-family: 'Courier New', monospace;
+	font-size: 0.9em;
+}
+
+#quickQuillArea .ql-editor hr {
+	margin: 1.5rem 0;
+	border: none;
+	border-top: 2px solid #e0e0e0;
+}
+
+#quickQuillArea .ql-editor table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1rem 0;
+}
+
+#quickQuillArea .ql-editor table th,
+#quickQuillArea .ql-editor table td {
+	border: 1px solid #ddd;
+	padding: 0.75rem;
+}
+
+#quickQuillArea .ql-editor table th {
+	background-color: #f5f5f5;
+	font-weight: 600;
+}
+
+#quickQuillArea .ql-editor img {
+	max-width: 100%;
+	height: auto;
+	margin: 1rem 0;
+	border-radius: 4px;
+}
+
+#quickQuillArea .ql-editor a {
+	color: #0d6efd;
+	text-decoration: underline;
+}
+</style>
+
 <div class="alert alert-secondary" role="alert" style="margin-bottom: 0px !important;">
 <div class="container">
 	<?php if ($results) { ?>
