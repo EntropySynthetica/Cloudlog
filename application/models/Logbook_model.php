@@ -5546,6 +5546,7 @@ class Logbook_model extends CI_Model
         }
       }
       // check lat / lng (depend info source) //
+      $stn_loc = array(0, 0); // Default fallback
       if ($row->COL_GRIDSQUARE != null) {
         $stn_loc = $this->qra->qra2latlong($row->COL_GRIDSQUARE);
       } elseif ($row->COL_VUCC_GRIDS != null) {
@@ -5572,12 +5573,14 @@ class Logbook_model extends CI_Model
 
           $stn_loc = $this->qra->get_midpoint($coords);
         }
-      } else {
-        if (isset($row->lat) && isset($row->long)) {
-          $stn_loc = array($row->lat, $row->long);
-        }
+      } elseif (isset($row->lat) && isset($row->long)) {
+        $stn_loc = array($row->lat, $row->long);
       }
       list($plot['lat'], $plot['lng']) = $stn_loc;
+      // Skip markers with no valid location
+      if ($plot['lat'] == 0 && $plot['lng'] == 0) {
+        continue;
+      }
       // add plot //
       $json["markers"][] = $plot;
     }
@@ -5853,6 +5856,66 @@ class Logbook_model extends CI_Model
       'month_qsos' => 0,
       'year_qsos' => 0
     );
+  }
+
+  /**
+   * Get QSOs for public station diary map display
+   * Uses date range and optionally filters by logbook/satellite
+   * 
+   * @param string $dateFrom Start date (Y-m-d format)
+   * @param string $dateTo End date (Y-m-d format)
+   * @param int $logbookId Logbook ID (0 for all user logbooks)
+   * @param bool $satOnly Filter for satellite QSOs only
+   * @param int $userId User ID (derived from logbook if not specified)
+   * @return object Query result with QSO records
+   */
+  public function get_qsos_for_public_map($dateFrom, $dateTo, $logbookId = 0, $satOnly = false, $userId = null)
+  {
+    $CI = &get_instance();
+    $CI->load->model('logbooks_model');
+    $CI->load->model('Stations');
+
+    // Get station IDs for the logbook or user
+    $stationIds = array();
+    if ($logbookId > 0) {
+      $logbookLocations = $CI->logbooks_model->list_logbook_relationships($logbookId);
+      if (!empty($logbookLocations)) {
+        $stationIds = $logbookLocations;
+      }
+      
+      // Get user_id from logbook if not provided
+      if ($userId === null) {
+        $logbookData = $CI->logbooks_model->logbook($logbookId)->row();
+        if ($logbookData) {
+          $userId = (int)$logbookData->user_id;
+        }
+      }
+    } else if ($userId !== null) {
+      // Get all station IDs for the user
+      $stations = $CI->Stations->all_of_user((int)$userId);
+      foreach ($stations as $station) {
+        $stationIds[] = (int)$station->station_id;
+      }
+    }
+
+    if (empty($stationIds)) {
+      return $this->db->limit(0)->get($this->config->item('table_name'));
+    }
+
+    // Build query for QSOs with necessary fields for map plotting
+    $this->db->select($this->config->item('table_name') . '.COL_CALL, COL_BAND, COL_MODE, COL_SUBMODE, COL_TIME_ON, COL_GRIDSQUARE, COL_VUCC_GRIDS, COL_SAT_NAME, COL_SAT_MODE, COL_PROP_MODE, COL_DXCC, COL_COUNTRY, COL_EQSL_QSL_RCVD, COL_LOTW_QSL_RCVD, COL_QSL_RCVD, dxcc_entities.name, dxcc_entities.lat, dxcc_entities.long');
+    $this->db->join('dxcc_entities', $this->config->item('table_name') . '.COL_DXCC = dxcc_entities.adif', 'left');
+    $this->db->where("DATE(COL_TIME_ON) BETWEEN '" . $this->db->escape_str($dateFrom) . "' AND '" . $this->db->escape_str($dateTo) . "'");
+    $this->db->where_in('station_id', $stationIds);
+
+    // Filter for satellite QSOs if requested
+    if ($satOnly) {
+      $this->db->where('COL_PROP_MODE', 'SAT');
+    }
+
+    $this->db->order_by('COL_TIME_ON', 'ASC');
+    
+    return $this->db->get($this->config->item('table_name'));
   }
 }
 

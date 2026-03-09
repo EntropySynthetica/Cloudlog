@@ -258,4 +258,75 @@ class Stationdiary extends CI_Controller {
 			'visitor_reaction' => $visitorReaction,
 		));
 	}
-}
+
+	public function get_qso_map_data()
+	{
+		$this->output->set_content_type('application/json');
+
+		$dateFrom = $this->input->post('date_from', TRUE);
+		$dateTo = $this->input->post('date_to', TRUE);
+		$logbookId = (int)$this->input->post('logbook_id', TRUE);
+		$satOnly = $this->input->post('sat_only', TRUE) === '1';
+		$entryId = (int)$this->input->post('entry_id', TRUE);
+
+		if (empty($dateFrom) || empty($dateTo)) {
+			echo json_encode(array('error' => 'Date range required'));
+			return;
+		}
+
+		// Get user_id from the entry to ensure we only show their QSOs
+		$userId = null;
+		if ($entryId > 0) {
+			$userId = $this->note->get_public_entry_user_id($entryId);
+		}
+
+		if (!$userId) {
+			echo json_encode(array('error' => 'Unable to determine user context'));
+			return;
+		}
+
+		// Load necessary models
+		$this->load->model('logbook_model');
+		$this->load->model('Stations');
+
+		// Get QSOs for the date range
+		$qsos = $this->logbook_model->get_qsos_for_public_map($dateFrom, $dateTo, $logbookId, $satOnly, $userId);
+
+		if (empty($qsos) || $qsos->num_rows() === 0) {
+			echo json_encode(array('error' => 'No QSOs found', 'markers' => array()));
+			return;
+		}
+
+		// Get plot array for map markers (uses gridsquare, VUCC, DXCC fallback)
+		$plotArray = $this->logbook_model->get_plot_array_for_map($qsos->result(), TRUE);
+
+		// Try to get station location from logbook
+		$stationArray = array();
+		if ($logbookId > 0) {
+			$this->load->model('logbooks_model');
+			$this->load->library('qra');
+			
+			$logbookLocations = $this->logbooks_model->list_logbook_relationships($logbookId);
+			if (!empty($logbookLocations)) {
+				// Get the first station's location
+				$stationData = $this->Stations->profile($logbookLocations[0])->row();
+				if ($stationData && !empty($stationData->station_gridsquare)) {
+					list($stationLat, $stationLng) = $this->qra->qra2latlong($stationData->station_gridsquare);
+					if ($stationLat != 0 && $stationLng != 0) {
+						$stationArray = array(
+							'station' => array(
+								'lat' => $stationLat,
+								'lng' => $stationLng,
+								'html' => '<strong>' . htmlspecialchars($stationData->station_callsign ?? '', ENT_QUOTES) . '</strong><br>' . $stationData->station_gridsquare,
+								'label' => $stationData->station_profile_name ?? '',
+								'icon' => 'stationIcon'
+							)
+						);
+					}
+				}
+			}
+		}
+
+		// Merge and return
+		echo json_encode(array_merge($plotArray, $stationArray));
+	}}

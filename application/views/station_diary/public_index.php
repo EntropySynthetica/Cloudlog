@@ -9,6 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>assets/js/leaflet/leaflet.css" />
 	<style>
 		body {
 			background: #efefef;
@@ -345,8 +346,24 @@
 											</div>
 										<?php } ?>
 										
-										<?php if (!empty($entry->qso_list)) { ?>
-											<details class="mt-2">
+									<?php if (!empty($entry->qso_list)) { ?>
+										<?php
+										$entryDate = date('Y-m-d', strtotime($entry->created_at));
+										$mapDateFrom = !empty($entry->qso_date_start) ? $entry->qso_date_start : $entryDate;
+										$mapDateTo = !empty($entry->qso_date_end) ? $entry->qso_date_end : $entryDate;
+										$mapLogbookId = !empty($entry->logbook_id) ? (int)$entry->logbook_id : 0;
+										$mapSatOnly = (int)($entry->qso_satellite_only ?? 0) === 1 ? '1' : '0';
+										?>
+										
+										<div class="mb-2">
+											<button type="button" class="btn btn-sm btn-outline-primary no-print me-2" onclick="toggleQsoMap(<?php echo (int)$entry->id; ?>, '<?php echo htmlspecialchars($mapDateFrom, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($mapDateTo, ENT_QUOTES); ?>', <?php echo $mapLogbookId; ?>, '<?php echo $mapSatOnly; ?>')">
+												<i class="fas fa-map-marked-alt me-1"></i><span id="map-toggle-text-<?php echo (int)$entry->id; ?>">Show QSO Map</span>
+											</button>
+										</div>
+										
+										<div id="qso-map-<?php echo (int)$entry->id; ?>" class="mb-3" style="display: none; width: 100%; height: 450px; border: 1px solid #ddd; border-radius: 4px;"></div>
+										
+										<details class="mt-2">
 											<summary class="fw-bold" style="cursor: pointer; color: #2f4f73;">View QSO List (<span class="qso-count"><?php echo count($entry->qso_list); ?></span> contacts)</summary>
 											<div class="table-responsive mt-2">
 												<table class="table table-sm table-striped">
@@ -603,4 +620,128 @@
 					});
 			});
 		});
+	</script>
+
+	<!-- Leaflet Map JavaScript -->
+	<script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/leaflet.js"></script>
+	<script>
+		var qsoMaps = {};
+		var qsoMapMarkers = {};
+
+		function toggleQsoMap(entryId, dateFrom, dateTo, logbookId, satOnly) {
+			const mapContainer = document.getElementById('qso-map-' + entryId);
+			const toggleText = document.getElementById('map-toggle-text-' + entryId);
+			
+			if (!mapContainer || !toggleText) {
+				return;
+			}
+
+			if (mapContainer.style.display === 'none') {
+				mapContainer.style.display = 'block';
+				toggleText.textContent = 'Hide QSO Map';
+				
+				if (!qsoMaps[entryId]) {
+					initQsoMap(entryId, dateFrom, dateTo, logbookId, satOnly);
+				}
+			} else {
+				mapContainer.style.display = 'none';
+				toggleText.textContent = 'Show QSO Map';
+			}
+		}
+
+		function initQsoMap(entryId, dateFrom, dateTo, logbookId, satOnly) {
+			const mapId = 'qso-map-' + entryId;
+			
+			// Initialize Leaflet map
+			var map = L.map(mapId).setView([20, 0], 2);
+			
+			// Add tile layer
+			var osmUrl = '<?php echo $this->optionslib->get_option("map_tile_server") ?: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"; ?>';
+			L.tileLayer(osmUrl, {
+				minZoom: 1,
+				maxZoom: 12,
+				attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+			}).addTo(map);
+			
+			qsoMaps[entryId] = map;
+			qsoMapMarkers[entryId] = [];
+			
+			// Load QSO data
+			fetch('<?php echo site_url("stationdiary/get_qso_map_data"); ?>', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+				},
+				body: 'entry_id=' + encodeURIComponent(entryId) + '&date_from=' + encodeURIComponent(dateFrom) + '&date_to=' + encodeURIComponent(dateTo) + '&logbook_id=' + encodeURIComponent(logbookId) + '&sat_only=' + encodeURIComponent(satOnly)
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.error) {
+					console.error('Map data error:', data.error);
+					return;
+				}
+				
+				if (data.markers && data.markers.length > 0) {
+					var bounds = [];
+					
+					data.markers.forEach(function(markerData) {
+						if (markerData.lat && markerData.lng) {
+							var confirmed = markerData.confirmed === 'Y';
+							var markerColor = confirmed ? '#00AA00' : '#FF0000';
+							
+							var marker = L.circleMarker([markerData.lat, markerData.lng], {
+								radius: 6,
+								fillColor: markerColor,
+								color: '#fff',
+								weight: 1,
+								opacity: 1,
+								fillOpacity: 0.8
+							});
+							
+							// Build popup HTML
+							var popupHtml = '<div style="min-width: 150px;">';
+							popupHtml += markerData.flag || '';
+							popupHtml += '<strong>' + (markerData.label || 'Unknown') + '</strong><br>';
+							popupHtml += markerData.html || '';
+							popupHtml += '</div>';
+							
+							marker.bindPopup(popupHtml);
+							marker.addTo(map);
+							qsoMapMarkers[entryId].push(marker);
+							bounds.push([markerData.lat, markerData.lng]);
+						}
+					});
+					
+					// Fit map to markers
+					if (bounds.length > 0) {
+						map.fitBounds(bounds, { padding: [20, 20] });
+					}
+				}
+				
+				// Add station marker if available
+				if (data.station && data.station.lat && data.station.lng) {
+					var stationMarker = L.marker([data.station.lat, data.station.lng], {
+						icon: L.divIcon({
+							className: 'station-marker',
+							html: '<i class="fas fa-home" style="color: #0066ff; font-size: 20px;"></i>',
+							iconSize: [20, 20]
+						})
+					});
+					
+					if (data.station.html) {
+						stationMarker.bindPopup(data.station.html);
+					}
+					
+					stationMarker.addTo(map);
+				}
+				
+				// Invalidate size to ensure proper rendering
+				setTimeout(function() {
+					map.invalidateSize();
+				}, 100);
+			})
+			.catch(error => {
+				console.error('Error loading map data:', error);
+			});
+		}
 	</script>

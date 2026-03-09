@@ -691,6 +691,18 @@ class Note extends CI_Model {
 		return $this->db->get('notes');
 	}
 
+	public function get_public_entry_user_id($entry_id) {
+		// Get user_id from a public station diary entry without requiring session
+		$this->db->select('user_id');
+		$this->db->from('notes');
+		$this->db->where('id', (int)$entry_id);
+		$this->db->where('cat', 'Station Diary');
+		$this->db->where('is_public', 1);
+		$row = $this->db->get()->row();
+		
+		return $row ? (int)$row->user_id : null;
+	}
+
 	function ClaimAllNotes($id = NULL) {
 		// if $id is empty then use session user_id
 		if (empty($id)) {
