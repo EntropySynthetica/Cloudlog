@@ -82,12 +82,22 @@
 			margin-bottom: 0.3rem;
 		}
 
+		.diary-entry-title a {
+			color: inherit;
+			text-decoration: none;
+		}
+
+		.diary-entry-title a:hover {
+			text-decoration: underline;
+		}
+
 		.diary-entry-date {
 			font-size: 1.15rem;
 			font-weight: 600;
 			color: #5c6885;
 			margin-bottom: 1rem;
 		}
+
 
 		.note-content {
 			color: #44506b;
@@ -218,8 +228,9 @@
 
 			<?php if (!empty($entries)) { ?>
 				<?php foreach ($entries as $entry) { ?>
-					<article class="diary-entry">
-						<h2 class="diary-entry-title"><?php echo htmlspecialchars($entry->title, ENT_QUOTES); ?></h2>
+					<?php $entryPermalink = site_url('station-diary/' . rawurlencode($callsign) . '/entry/' . (int)$entry->id); ?>
+					<article class="diary-entry" id="entry-<?php echo (int)$entry->id; ?>">
+						<h2 class="diary-entry-title"><a href="<?php echo htmlspecialchars($entryPermalink, ENT_QUOTES); ?>"><?php echo htmlspecialchars($entry->title, ENT_QUOTES); ?></a></h2>
 						<hr class="diary-rule mt-0">
 						<div class="diary-entry-date"><?php echo date('F j, Y', strtotime($entry->created_at)); ?></div>
 

@@ -429,6 +429,42 @@ class Note extends CI_Model {
 		return $entries;
 	}
 
+	public function get_public_station_diary_entry($user_id, $entry_id) {
+		$this->db->from('notes');
+		$this->db->where('id', (int)$entry_id);
+		$this->db->where('user_id', (int)$user_id);
+		$this->db->where('cat', 'Station Diary');
+		$this->db->where('is_public', 1);
+		$query = $this->db->get();
+
+		$entry = $query->row();
+		if (!$entry) {
+			return null;
+		}
+
+		$imagesMap = $this->get_diary_images(array((int)$entry->id));
+		$entry->images = isset($imagesMap[$entry->id]) ? $imagesMap[$entry->id] : array();
+		$entry->qso_summary = null;
+		$entry->qso_list = array();
+
+		if ((int)$entry->include_qso_summary === 1) {
+			$entryDate = date('Y-m-d', strtotime($entry->created_at));
+			$dateStart = !empty($entry->qso_date_start) ? $entry->qso_date_start : $entryDate;
+			$dateEnd = !empty($entry->qso_date_end) ? $entry->qso_date_end : $entryDate;
+			$satOnly = (int)$entry->qso_satellite_only === 1;
+
+			if (!empty($entry->qso_date_start) || !empty($entry->qso_date_end)) {
+				$entry->qso_summary = $this->get_qso_summary_for_date_range($user_id, $dateStart, $dateEnd, $entry->logbook_id, $satOnly);
+				$entry->qso_list = $this->get_qso_list_for_date_range($user_id, $dateStart, $dateEnd, $entry->logbook_id, $satOnly);
+			} else {
+				$entry->qso_summary = $this->get_qso_summary_for_date($user_id, $entryDate, $entry->logbook_id);
+				$entry->qso_list = $this->get_qso_list_for_date($user_id, $entryDate, $entry->logbook_id);
+			}
+		}
+
+		return $entry;
+	}
+
 	private function get_user_station_ids($user_id) {
 		$this->db->select('station_id');
 		$this->db->from('station_profile');

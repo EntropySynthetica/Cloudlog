@@ -99,4 +99,52 @@ class Stationdiary extends CI_Controller {
 			'callsign' => $cleanCallsign,
 			'entries' => $entries,		'feed_url' => site_url('station-diary/' . rawurlencode($cleanCallsign) . '/rss'),		));
 	}
+
+	public function entry($callsign = NULL, $entry_id = 0)
+	{
+		if ($this->security->xss_clean($callsign, TRUE) === FALSE) {
+			show_404();
+			return;
+		}
+
+		$resolution = $this->note->resolve_public_user_by_callsign($callsign);
+		if (!isset($resolution['status']) || $resolution['status'] !== 'ok') {
+			show_404();
+			return;
+		}
+
+		$user_id = (int)$resolution['user_id'];
+		$cleanCallsign = strtoupper($resolution['callsign']);
+		$entryId = (int)$entry_id;
+		if ($entryId <= 0) {
+			show_404();
+			return;
+		}
+
+		$cacheVersion = $this->note->get_public_diary_cache_version($user_id);
+		$renderVersion = 'public_diary_render_v3';
+		$cacheKey = 'public_station_diary_entry_' . md5($cleanCallsign . '_' . $entryId . '_' . $cacheVersion . '_' . $renderVersion);
+
+		$cachedHtml = $this->cache->get($cacheKey);
+		if ($cachedHtml !== FALSE && !empty($cachedHtml)) {
+			$this->output->set_output($cachedHtml);
+			return;
+		}
+
+		$entry = $this->note->get_public_station_diary_entry($user_id, $entryId);
+		if (!$entry) {
+			show_404();
+			return;
+		}
+
+		$data['callsign'] = $cleanCallsign;
+		$data['entries'] = array($entry);
+		$data['pagination_links'] = '';
+		$data['page_title'] = $entry->title . ' - Station Diary - ' . $cleanCallsign;
+		$data['rss_url'] = site_url('station-diary/' . rawurlencode($cleanCallsign) . '/rss');
+
+		$html = $this->load->view('station_diary/public_index', $data, TRUE);
+		$this->cache->save($cacheKey, $html, 86400);
+		$this->output->set_output($html);
+	}
 }

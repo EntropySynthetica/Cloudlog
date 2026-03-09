@@ -54,6 +54,7 @@ $route['translate_uri_dashes'] = FALSE;
 
 $route['station-diary/(:any)'] = 'stationdiary/index/$1';
 $route['station-diary/(:any)/rss'] = 'stationdiary/rss/$1';
+$route['station-diary/(:any)/entry/(:num)'] = 'stationdiary/entry/$1/$2';
 $route['station-diary/(:any)/(:num)'] = 'stationdiary/index/$1/$2';
 
 
