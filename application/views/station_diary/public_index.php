@@ -208,6 +208,40 @@
 		.qso-summary-container {
 			margin-top: 0.5rem;
 		}
+
+		.reaction-bar {
+			padding: 0.5rem 0.75rem;
+			border: 1px solid #d7dce6;
+			border-radius: 0.375rem;
+			background: #f8fafc;
+		}
+
+		.entry-actions {
+			padding: 0.75rem;
+			border: 1px solid #d7dce6;
+			border-radius: 0.375rem;
+			background: #f8fafc;
+		}
+
+		.entry-actions-row {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			flex-wrap: wrap;
+		}
+
+		.entry-actions-label {
+			font-size: 0.9rem;
+			color: #6c757d;
+			font-weight: 600;
+			margin-right: 0.25rem;
+		}
+
+		.reaction-btn.active {
+			border-color: #2f4f73;
+			background: #eaf2fb;
+			color: #2f4f73;
+		}
 	</style>
 </head>
 <body>
@@ -236,6 +270,8 @@
 					$facebookShareUrl = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($sharePermalink);
 					$xShareUrl = 'https://x.com/intent/tweet?url=' . rawurlencode($sharePermalink) . '&text=' . rawurlencode($shareText);
 					$blueskyShareUrl = 'https://bsky.app/intent/compose?text=' . rawurlencode($shareText . ' ' . $sharePermalink);
+					$reactionTotals = isset($entry_reaction_totals) && is_array($entry_reaction_totals) ? $entry_reaction_totals : array('like' => 0, 'love' => 0, 'fire' => 0);
+					$visitorReactionValue = isset($visitor_reaction) ? $visitor_reaction : null;
 					?>
 					<article class="diary-entry" id="entry-<?php echo (int)$entry->id; ?>">
 						<h2 class="diary-entry-title"><a href="<?php echo htmlspecialchars($entryPermalink, ENT_QUOTES); ?>"><?php echo htmlspecialchars($entry->title, ENT_QUOTES); ?></a></h2>
@@ -265,21 +301,6 @@
 				
 				<div class="note-content mb-4"><?php echo $processedNote; ?></div>
 
-				<?php if (!empty($is_single_entry)) { ?>
-					<div class="d-flex flex-wrap align-items-center gap-2 mb-3 no-print">
-						<span class="small text-muted fw-semibold me-1">Share:</span>
-						<a href="<?php echo htmlspecialchars($facebookShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
-							<i class="fab fa-facebook-f me-1"></i>Facebook
-						</a>
-						<a href="<?php echo htmlspecialchars($xShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
-							<i class="fab fa-x-twitter me-1"></i>X
-						</a>
-						<a href="<?php echo htmlspecialchars($blueskyShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
-							<i class="fas fa-share-nodes me-1"></i>Bsky
-						</a>
-					</div>
-				<?php } ?>
-		
 		<!-- QSO Summary UPDATED VERSION 2.0 -->
 		<?php if ((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) { ?>
 			<hr class="diary-rule mt-2">
@@ -365,6 +386,34 @@
 									<?php } ?>
 								</div>
 								<?php } ?>
+
+					<?php if (!empty($is_single_entry)) { ?>
+						<div class="entry-actions mb-3 no-print">
+							<div class="entry-actions-row mb-2 reaction-bar" data-reaction-container="1" data-callsign="<?php echo htmlspecialchars($callsign, ENT_QUOTES); ?>" data-entry-id="<?php echo (int)$entry->id; ?>">
+								<span class="entry-actions-label">Reactions:</span>
+								<button type="button" class="btn btn-sm btn-outline-secondary reaction-btn <?php echo ($visitorReactionValue === 'like') ? 'active' : ''; ?>" data-reaction="like">👍 <span class="reaction-count" data-reaction-count="like"><?php echo (int)($reactionTotals['like'] ?? 0); ?></span></button>
+								<button type="button" class="btn btn-sm btn-outline-secondary reaction-btn <?php echo ($visitorReactionValue === 'love') ? 'active' : ''; ?>" data-reaction="love">❤️ <span class="reaction-count" data-reaction-count="love"><?php echo (int)($reactionTotals['love'] ?? 0); ?></span></button>
+								<button type="button" class="btn btn-sm btn-outline-secondary reaction-btn <?php echo ($visitorReactionValue === 'fire') ? 'active' : ''; ?>" data-reaction="fire">🔥 <span class="reaction-count" data-reaction-count="fire"><?php echo (int)($reactionTotals['fire'] ?? 0); ?></span></button>
+								<span class="small text-muted ms-2" data-reaction-status="1"></span>
+							</div>
+							<div class="entry-actions-row">
+								<span class="entry-actions-label">Share:</span>
+								<a href="<?php echo htmlspecialchars($xShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+									<i class="fab fa-x-twitter me-1"></i>X
+								</a>
+								<a href="<?php echo htmlspecialchars($blueskyShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+									<i class="fas fa-share-nodes me-1"></i>Bsky
+								</a>
+								<a href="<?php echo htmlspecialchars($facebookShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+									<i class="fab fa-facebook-f me-1"></i>Facebook
+								</a>
+								<button type="button" class="btn btn-sm btn-outline-secondary" data-copy-link="<?php echo htmlspecialchars($sharePermalink, ENT_QUOTES); ?>">
+									<i class="fas fa-link me-1"></i>Copy link
+								</button>
+								<span class="small text-muted" data-copy-status="1"></span>
+							</div>
+						</div>
+					<?php } ?>
 
 						<?php if (!empty($remainingImages)) { ?>
 							<div class="row g-2 mb-3">
@@ -475,6 +524,83 @@
 					if (endInput) endInput.value = today;
 					startInput.dispatchEvent(new Event('change', {bubbles: true}));
 				}
+			});
+		});
+
+		document.querySelectorAll('[data-reaction-container="1"]').forEach(container => {
+			const callsign = container.getAttribute('data-callsign');
+			const entryId = container.getAttribute('data-entry-id');
+			const statusEl = container.querySelector('[data-reaction-status="1"]');
+
+			container.querySelectorAll('.reaction-btn').forEach(btn => {
+				btn.addEventListener('click', function() {
+					const reaction = this.getAttribute('data-reaction');
+					const formData = new URLSearchParams();
+					formData.append('reaction', reaction);
+
+					container.querySelectorAll('.reaction-btn').forEach(button => button.disabled = true);
+					if (statusEl) statusEl.textContent = 'Saving...';
+
+					fetch('<?php echo site_url('station-diary'); ?>/' + encodeURIComponent(callsign) + '/entry/' + encodeURIComponent(entryId) + '/react', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+						body: formData.toString()
+					})
+					.then(r => r.json())
+					.then(data => {
+						if (!data || !data.success) {
+							throw new Error((data && data.message) ? data.message : 'Unable to save reaction');
+						}
+
+						container.querySelectorAll('.reaction-btn').forEach(button => {
+							const key = button.getAttribute('data-reaction');
+							button.classList.toggle('active', key === data.visitor_reaction);
+							const countEl = button.querySelector('[data-reaction-count="' + key + '"]');
+							if (countEl && data.totals && typeof data.totals[key] !== 'undefined') {
+								countEl.textContent = data.totals[key];
+							}
+						});
+
+						if (statusEl) {
+							statusEl.textContent = 'Thanks for reacting!';
+							setTimeout(() => { statusEl.textContent = ''; }, 1800);
+						}
+					})
+					.catch(() => {
+						if (statusEl) {
+							statusEl.textContent = 'Unable to save reaction.';
+							setTimeout(() => { statusEl.textContent = ''; }, 2200);
+						}
+					})
+					.finally(() => {
+						container.querySelectorAll('.reaction-btn').forEach(button => button.disabled = false);
+					});
+				});
+			});
+		});
+
+		document.querySelectorAll('[data-copy-link]').forEach(btn => {
+			btn.addEventListener('click', function() {
+				const link = this.getAttribute('data-copy-link') || '';
+				const copyStatus = this.parentElement ? this.parentElement.querySelector('[data-copy-status="1"]') : null;
+
+				if (!link) {
+					return;
+				}
+
+				navigator.clipboard.writeText(link)
+					.then(() => {
+						if (copyStatus) {
+							copyStatus.textContent = 'Copied!';
+							setTimeout(() => { copyStatus.textContent = ''; }, 1600);
+						}
+					})
+					.catch(() => {
+						if (copyStatus) {
+							copyStatus.textContent = 'Unable to copy';
+							setTimeout(() => { copyStatus.textContent = ''; }, 1600);
+						}
+					});
 			});
 		});
 	</script>

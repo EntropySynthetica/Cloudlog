@@ -24,6 +24,35 @@ class Stationdiary extends CI_Controller {
 		return $dateFormat . ' H:i';
 	}
 
+	private function get_or_create_public_visitor_token()
+	{
+		$cookieName = 'cloudlog_diary_visitor';
+		$token = $this->input->cookie($cookieName, TRUE);
+
+		if (!empty($token) && preg_match('/^[a-f0-9]{32,64}$/i', $token)) {
+			return $token;
+		}
+
+		try {
+			$token = bin2hex(random_bytes(16));
+		} catch (Exception $e) {
+			$token = md5(uniqid((string)mt_rand(), TRUE));
+		}
+
+		setcookie($cookieName, $token, time() + (365 * 24 * 60 * 60), '/', '', (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'), TRUE);
+		return $token;
+	}
+
+	private function build_public_visitor_hash()
+	{
+		$token = $this->get_or_create_public_visitor_token();
+		$ipAddress = (string)$this->input->ip_address();
+		$userAgent = substr((string)$this->input->user_agent(), 0, 255);
+		$secret = (string)$this->config->item('encryption_key');
+
+		return hash('sha256', $token . '|' . $ipAddress . '|' . $userAgent . '|' . $secret);
+	}
+
 	public function index($callsign = NULL, $offset = 0)
 	{
 		if ($this->security->xss_clean($callsign, TRUE) === FALSE) {
@@ -139,7 +168,7 @@ class Stationdiary extends CI_Controller {
 		}
 
 		$cacheVersion = $this->note->get_public_diary_cache_version($user_id);
-		$renderVersion = 'public_diary_render_v3';
+		$renderVersion = 'public_diary_render_v4';
 		$cacheKey = 'public_station_diary_entry_' . md5($cleanCallsign . '_' . $entryId . '_' . $cacheVersion . '_' . $renderVersion);
 
 		$cachedHtml = $this->cache->get($cacheKey);
@@ -154,6 +183,8 @@ class Stationdiary extends CI_Controller {
 			return;
 		}
 
+		$entryReactionTotals = $this->note->get_station_diary_reaction_totals($entry->id);
+
 		$data['callsign'] = $cleanCallsign;
 		$data['entries'] = array($entry);
 		$data['pagination_links'] = '';
@@ -162,9 +193,69 @@ class Stationdiary extends CI_Controller {
 		$data['qso_datetime_format'] = $this->get_public_qso_datetime_format($resolution['user_date_format'] ?? NULL);
 		$data['is_single_entry'] = true;
 		$data['current_entry_permalink'] = site_url('station-diary/' . rawurlencode($cleanCallsign) . '/entry/' . (int)$entry->id);
+		$data['entry_reaction_totals'] = $entryReactionTotals;
+		$data['visitor_reaction'] = null;
 
 		$html = $this->load->view('station_diary/public_index', $data, TRUE);
 		$this->cache->save($cacheKey, $html, 86400);
 		$this->output->set_output($html);
+	}
+
+	public function react($callsign = NULL, $entry_id = 0)
+	{
+		header('Content-Type: application/json');
+
+		if (strtolower($this->input->method()) !== 'post') {
+			echo json_encode(array('success' => false, 'message' => 'Invalid request method'));
+			return;
+		}
+
+		if ($this->security->xss_clean($callsign, TRUE) === FALSE) {
+			echo json_encode(array('success' => false, 'message' => 'Invalid callsign'));
+			return;
+		}
+
+		$resolution = $this->note->resolve_public_user_by_callsign($callsign);
+		if (!isset($resolution['status']) || $resolution['status'] !== 'ok') {
+			echo json_encode(array('success' => false, 'message' => 'Not found'));
+			return;
+		}
+
+		$user_id = (int)$resolution['user_id'];
+		$entryId = (int)$entry_id;
+		if ($entryId <= 0) {
+			echo json_encode(array('success' => false, 'message' => 'Invalid entry'));
+			return;
+		}
+
+		$entry = $this->note->get_public_station_diary_entry($user_id, $entryId);
+		if (!$entry) {
+			echo json_encode(array('success' => false, 'message' => 'Entry not found'));
+			return;
+		}
+
+		$reaction = strtolower(trim((string)$this->input->post('reaction', TRUE)));
+		if (!in_array($reaction, array('like', 'love', 'fire'), TRUE)) {
+			echo json_encode(array('success' => false, 'message' => 'Invalid reaction'));
+			return;
+		}
+
+		$visitorHash = $this->build_public_visitor_hash();
+		$saved = $this->note->save_station_diary_reaction($entryId, $reaction, $visitorHash);
+		if (!$saved) {
+			echo json_encode(array('success' => false, 'message' => 'Unable to save reaction'));
+			return;
+		}
+
+		$this->note->invalidate_public_diary_cache_for_note($entryId, $user_id);
+
+		$totals = $this->note->get_station_diary_reaction_totals($entryId);
+		$visitorReaction = $this->note->get_station_diary_visitor_reaction($entryId, $visitorHash);
+
+		echo json_encode(array(
+			'success' => true,
+			'totals' => $totals,
+			'visitor_reaction' => $visitorReaction,
+		));
 	}
 }

@@ -466,6 +466,87 @@ class Note extends CI_Model {
 		return $entry;
 	}
 
+	public function get_station_diary_reaction_totals($entry_id) {
+		$totals = array(
+			'like' => 0,
+			'love' => 0,
+			'fire' => 0,
+		);
+
+		if (!$this->db->table_exists('station_diary_reactions')) {
+			return $totals;
+		}
+
+		$this->db->select('reaction, COUNT(*) AS total');
+		$this->db->from('station_diary_reactions');
+		$this->db->where('diary_id', (int)$entry_id);
+		$this->db->group_by('reaction');
+		$query = $this->db->get();
+
+		foreach ($query->result() as $row) {
+			$key = strtolower((string)$row->reaction);
+			if (array_key_exists($key, $totals)) {
+				$totals[$key] = (int)$row->total;
+			}
+		}
+
+		return $totals;
+	}
+
+	public function get_station_diary_visitor_reaction($entry_id, $visitor_hash) {
+		if (empty($visitor_hash) || !$this->db->table_exists('station_diary_reactions')) {
+			return null;
+		}
+
+		$this->db->select('reaction');
+		$this->db->from('station_diary_reactions');
+		$this->db->where('diary_id', (int)$entry_id);
+		$this->db->where('visitor_hash', $visitor_hash);
+		$row = $this->db->get()->row();
+
+		if (!$row) {
+			return null;
+		}
+
+		$reaction = strtolower((string)$row->reaction);
+		return in_array($reaction, array('like', 'love', 'fire'), TRUE) ? $reaction : null;
+	}
+
+	public function save_station_diary_reaction($entry_id, $reaction, $visitor_hash) {
+		$reaction = strtolower(trim((string)$reaction));
+		if (!in_array($reaction, array('like', 'love', 'fire'), TRUE)) {
+			return false;
+		}
+
+		if (empty($visitor_hash) || !$this->db->table_exists('station_diary_reactions')) {
+			return false;
+		}
+
+		$now = date('Y-m-d H:i:s');
+
+		$this->db->select('id');
+		$this->db->from('station_diary_reactions');
+		$this->db->where('diary_id', (int)$entry_id);
+		$this->db->where('visitor_hash', $visitor_hash);
+		$existing = $this->db->get()->row();
+
+		if ($existing) {
+			$this->db->where('id', (int)$existing->id);
+			return $this->db->update('station_diary_reactions', array(
+				'reaction' => $reaction,
+				'updated_at' => $now,
+			));
+		}
+
+		return $this->db->insert('station_diary_reactions', array(
+			'diary_id' => (int)$entry_id,
+			'reaction' => $reaction,
+			'visitor_hash' => $visitor_hash,
+			'created_at' => $now,
+			'updated_at' => $now,
+		));
+	}
+
 	private function get_user_station_ids($user_id) {
 		$this->db->select('station_id');
 		$this->db->from('station_profile');
