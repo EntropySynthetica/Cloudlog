@@ -356,7 +356,7 @@ class Note extends CI_Model {
 			return array('status' => 'not_found');
 		}
 
-		$this->db->select('user_id, user_callsign');
+		$this->db->select('user_id, user_callsign, user_date_format');
 		$this->db->from($this->config->item('auth_table'));
 		$this->db->where('UPPER(user_callsign)', $clean_callsign);
 		$query = $this->db->get();
@@ -374,6 +374,7 @@ class Note extends CI_Model {
 			'status' => 'ok',
 			'user_id' => (int)$user->user_id,
 			'callsign' => $user->user_callsign,
+			'user_date_format' => $user->user_date_format ?? null,
 		);
 	}
 

@@ -227,8 +227,16 @@
 			<hr class="diary-rule mb-4">
 
 			<?php if (!empty($entries)) { ?>
+				<?php $publicQsoDateTimeFormat = !empty($qso_datetime_format) ? $qso_datetime_format : 'Y-m-d H:i'; ?>
 				<?php foreach ($entries as $entry) { ?>
 					<?php $entryPermalink = site_url('station-diary/' . rawurlencode($callsign) . '/entry/' . (int)$entry->id); ?>
+					<?php
+					$sharePermalink = !empty($current_entry_permalink) ? $current_entry_permalink : $entryPermalink;
+					$shareText = $entry->title . ' - ' . $callsign . "'s Station Diary";
+					$facebookShareUrl = 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($sharePermalink);
+					$xShareUrl = 'https://x.com/intent/tweet?url=' . rawurlencode($sharePermalink) . '&text=' . rawurlencode($shareText);
+					$blueskyShareUrl = 'https://bsky.app/intent/compose?text=' . rawurlencode($shareText . ' ' . $sharePermalink);
+					?>
 					<article class="diary-entry" id="entry-<?php echo (int)$entry->id; ?>">
 						<h2 class="diary-entry-title"><a href="<?php echo htmlspecialchars($entryPermalink, ENT_QUOTES); ?>"><?php echo htmlspecialchars($entry->title, ENT_QUOTES); ?></a></h2>
 						<hr class="diary-rule mt-0">
@@ -256,6 +264,21 @@
 				?>
 				
 				<div class="note-content mb-4"><?php echo $processedNote; ?></div>
+
+				<?php if (!empty($is_single_entry)) { ?>
+					<div class="d-flex flex-wrap align-items-center gap-2 mb-3 no-print">
+						<span class="small text-muted fw-semibold me-1">Share:</span>
+						<a href="<?php echo htmlspecialchars($facebookShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+							<i class="fab fa-facebook-f me-1"></i>Facebook
+						</a>
+						<a href="<?php echo htmlspecialchars($xShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+							<i class="fab fa-x-twitter me-1"></i>X
+						</a>
+						<a href="<?php echo htmlspecialchars($blueskyShareUrl, ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+							<i class="fas fa-share-nodes me-1"></i>Bsky
+						</a>
+					</div>
+				<?php } ?>
 		
 		<!-- QSO Summary UPDATED VERSION 2.0 -->
 		<?php if ((int)$entry->include_qso_summary === 1 && !empty($entry->qso_summary) && (int)($entry->qso_summary['total_qsos'] ?? 0) > 0) { ?>
@@ -319,7 +342,7 @@
 													<tbody class="qso-table-body">
 														<?php foreach ($entry->qso_list as $qso) { ?>
 															<tr>
-																<td><?php echo date('Y-m-d H:i', strtotime($qso->COL_TIME_ON)); ?></td>
+																<td><?php echo date($publicQsoDateTimeFormat, strtotime($qso->COL_TIME_ON)); ?></td>
 																<td><strong><?php echo htmlspecialchars($qso->COL_CALL, ENT_QUOTES); ?></strong></td>
 																<td>
 																	<?php

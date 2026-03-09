@@ -10,6 +10,20 @@ class Stationdiary extends CI_Controller {
 		$this->load->driver('cache', array('adapter' => 'file'));
 	}
 
+	private function get_public_qso_datetime_format($userDateFormat = NULL)
+	{
+		$dateFormat = !empty($userDateFormat) ? trim((string)$userDateFormat) : trim((string)$this->config->item('qso_date_format'));
+		if ($dateFormat === '') {
+			$dateFormat = 'Y-m-d';
+		}
+
+		if (preg_match('/[GgHh]/', $dateFormat) || strpos($dateFormat, 'i') !== FALSE) {
+			return $dateFormat;
+		}
+
+		return $dateFormat . ' H:i';
+	}
+
 	public function index($callsign = NULL, $offset = 0)
 	{
 		if ($this->security->xss_clean($callsign, TRUE) === FALSE) {
@@ -71,6 +85,9 @@ class Stationdiary extends CI_Controller {
 		$data['pagination_links'] = $this->pagination->create_links();
 		$data['page_title'] = 'Station Diary - ' . $cleanCallsign;
 		$data['rss_url'] = site_url('station-diary/' . rawurlencode($cleanCallsign) . '/rss');
+		$data['qso_datetime_format'] = $this->get_public_qso_datetime_format($resolution['user_date_format'] ?? NULL);
+		$data['is_single_entry'] = false;
+		$data['current_entry_permalink'] = '';
 
 		$html = $this->load->view('station_diary/public_index', $data, TRUE);
 		$this->cache->save($cacheKey, $html, 86400);
@@ -142,6 +159,9 @@ class Stationdiary extends CI_Controller {
 		$data['pagination_links'] = '';
 		$data['page_title'] = $entry->title . ' - Station Diary - ' . $cleanCallsign;
 		$data['rss_url'] = site_url('station-diary/' . rawurlencode($cleanCallsign) . '/rss');
+		$data['qso_datetime_format'] = $this->get_public_qso_datetime_format($resolution['user_date_format'] ?? NULL);
+		$data['is_single_entry'] = true;
+		$data['current_entry_permalink'] = site_url('station-diary/' . rawurlencode($cleanCallsign) . '/entry/' . (int)$entry->id);
 
 		$html = $this->load->view('station_diary/public_index', $data, TRUE);
 		$this->cache->save($cacheKey, $html, 86400);
