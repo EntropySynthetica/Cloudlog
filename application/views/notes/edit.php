@@ -6,7 +6,10 @@
 	#quillArea .ql-editor {
 		min-height: 300px;
 		padding: 1.5rem;
-	font-size: 1rem;
+		font-size: 1rem;
+		line-height: 1.6;
+	}
+
 	#quillArea .ql-editor p {
 		margin-bottom: 1rem;
 	}
