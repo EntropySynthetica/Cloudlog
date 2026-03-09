@@ -90,20 +90,28 @@ class Notes extends CI_Controller {
 			}
 
 			$uploadData = $this->upload->data();
-			$imageConfig = array(
-				'image_library' => 'gd2',
-				'source_image' => $uploadData['full_path'],
-				'maintain_ratio' => TRUE,
-				'quality' => '80%',
-				'master_dim' => 'width',
-				'width' => 1600,
-				'height' => 1600,
-			);
+		
+		// Optimize image: resize to max 1080px and compress
+		$imageConfig = array(
+			'image_library' => 'gd2',
+			'source_image' => $uploadData['full_path'],
+			'maintain_ratio' => TRUE,
+			'quality' => '70%',  // Better compression
+			'master_dim' => 'auto',  // Auto-detect longest side
+			'width' => 1080,
+			'height' => 1080,
+		);
 
-			$this->image_lib->clear();
-			$this->image_lib->initialize($imageConfig);
+		$this->image_lib->clear();
+		$this->image_lib->initialize($imageConfig);
+		
+		// Resize if image is larger than 1080px on any side
+		if ($uploadData['image_width'] > 1080 || $uploadData['image_height'] > 1080) {
 			$this->image_lib->resize();
-
+		} else {
+			// Still reprocess for compression even if size is OK
+			$this->image_lib->resize();
+		}
 			$savedImages[] = array(
 				'filename' => 'uploads/diary/' . $user_id . '/' . $uploadData['file_name'],
 			);
