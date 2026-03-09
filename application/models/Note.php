@@ -799,6 +799,14 @@ public function process_image_shortcodes($content, $images = array()) {
 					break;
 				}
 			}
+
+			// Fallback: allow 1-based image position per entry (e.g. [image:1] = first image)
+			if (!$image) {
+				$position = (int)$identifier;
+				if ($position >= 1 && $position <= count($images)) {
+					$image = $images[$position - 1];
+				}
+			}
 		} else {
 			// Lookup by caption (case-insensitive)
 			foreach ($images as $img) {
