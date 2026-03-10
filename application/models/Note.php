@@ -209,7 +209,22 @@ class Note extends CI_Model {
 
 		$created_at = trim($this->input->post('created_at'));
 		if ($created_at !== '') {
-			$data['created_at'] = xss_clean($created_at);
+			if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $created_at)) {
+				$timePart = date('H:i:s');
+				if ($existing && !empty($existing->created_at) && $existing->created_at !== '0000-00-00 00:00:00') {
+					$existingTimestamp = strtotime($existing->created_at);
+					if ($existingTimestamp !== FALSE) {
+						$timePart = date('H:i:s', $existingTimestamp);
+					}
+				}
+
+				$data['created_at'] = xss_clean($created_at . ' ' . $timePart);
+			} else {
+				$parsedCreatedAt = strtotime($created_at);
+				if ($parsedCreatedAt !== FALSE) {
+					$data['created_at'] = xss_clean(date('Y-m-d H:i:s', $parsedCreatedAt));
+				}
+			}
 		}
 
 		$this->db->where('id', $note_id);
