@@ -1175,29 +1175,47 @@ class Logbook_model extends CI_Model
     $sat_name = '';
     if ($data['COL_SAT_NAME'] == 'AO-7') {
       if ($data['COL_BAND'] == '2m' && $data['COL_BAND_RX'] == '10m') {
-        $sat_name = 'AO-7[A]';
+        $sat_name = 'AO-7_[V/a]';
       }
       if ($data['COL_BAND'] == '70cm' && $data['COL_BAND_RX'] == '2m') {
-        $sat_name = 'AO-7[B]';
+        $sat_name = 'AO-7_[U/v]';
       }
+    } else if ($data['COL_SAT_NAME'] == 'SO-50') {
+      $sat_name = 'SO-50_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'SO-125') {
+      $sat_name = 'SO-125_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'RS-44') {
+      $sat_name = 'RS-44_[V/u]';
+    } else if ($data['COL_SAT_NAME'] == 'NO-44') {
+      $sat_name = 'NO-44_[APRS]';
+    } else if ($data['COL_SAT_NAME'] == 'JO-97') {
+      $sat_name = 'JO-97_[U/v]';
+    } else if ($data['COL_SAT_NAME'] == 'FO-29') {
+      $sat_name = 'FO-29_[V/u]';
+    } else if( $data['COL_SAT_NAME'] == 'AO-91') {
+        $sat_name = 'AO-91_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'AO-123') {
+        $sat_name = 'AO-123_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'AO-73') {
+        $sat_name = 'AO-73_[U/v]';
     } else if ($data['COL_SAT_NAME'] == 'MESAT-1') {
       $sat_name = 'MESAT1';
     } else if ($data['COL_SAT_NAME'] == 'SONATE-2') {
       $sat_name = 'SONATE-2 APRS';
     } else if ($data['COL_SAT_NAME'] == 'QMR-KWT-2') {
-      $sat_name = 'QMR-KWT-2_(RS95S)';
+      $sat_name = 'RS95S_[FM]';
     } else if ($data['COL_SAT_NAME'] == 'Lobachevsky') {
-      $sat_name = 'Lobachevsky_(RS83S)';
+      $sat_name = 'RS83S_[FM]';
     } else if ($data['COL_SAT_NAME'] == 'BOTAN') {
       if ($data['COL_MODE'] == 'PKT') {
         $sat_name = 'BOTAN APRS';
       }
     } else if ($data['COL_SAT_NAME'] == 'SONATE-2') {
       if ($data['COL_MODE'] == 'PKT') {
-        $sat_name = 'SONATE-2 APRS';
+        $sat_name = 'SONATE-2_[APRS]';
       }
     } else if ($data['COL_SAT_NAME'] == 'QO-100') {
-      $sat_name = 'QO-100_NB';
+      $sat_name = 'QO-100_[NB]';
     } else if ($data['COL_SAT_NAME'] == 'AO-92') {
       if ($data['COL_BAND'] == '70cm' && $data['COL_BAND_RX'] == '2m') {
         $sat_name = 'AO-92_U/v';
@@ -1214,9 +1232,9 @@ class Logbook_model extends CI_Model
       }
     } else if ($data['COL_SAT_NAME'] == 'PO-101') {
       if ($data['COL_MODE'] == 'PKT') {
-        $sat_name = 'PO-101[APRS]';
+        $sat_name = 'PO-101_[APRS]';
       } else {
-        $sat_name = 'PO-101[FM]';
+        $sat_name = 'PO-101_[FM]';
       }
     } else if ($data['COL_SAT_NAME'] == 'FO-118') {
       if ($data['COL_BAND'] == '2m') {
@@ -1230,12 +1248,12 @@ class Logbook_model extends CI_Model
       }
     } else if ($data['COL_SAT_NAME'] == 'ARISS' || $data['COL_SAT_NAME'] == 'ISS') {
       if ($data['COL_MODE'] == 'FM') {
-        $sat_name = 'ISS-FM';
+        $sat_name = 'ISS_[FM]';
       } else if ($data['COL_MODE'] == 'PKT') {
-        $sat_name = 'ISS-DATA';
+        $sat_name = 'ISS_[APRS]';
       }
     } else if ($data['COL_SAT_NAME'] == 'CAS-3H') {
-      $sat_name = 'LilacSat-2';
+      $sat_name = 'CAS-3H_[FM]';
     } else {
       $sat_name = $data['COL_SAT_NAME'];
     }
