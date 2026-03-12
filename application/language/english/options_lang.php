@@ -109,6 +109,14 @@ $lang['options_open_registration'] = 'Open Registration';
 $lang['options_open_registration_hint'] = 'Allow users to self-register via a public signup page.';
 $lang['options_registration_settings_saved'] = 'Registration settings have been saved successfully.';
 
+// Public Station Diary
+$lang['options_public_station_diary'] = 'Public Station Diary';
+$lang['options_public_station_diary_enabled'] = 'Public Station Diary';
+$lang['options_public_station_diary_enabled_hint'] = 'Enable or disable the ability for users to create public station diary entries. When disabled, all diary entries remain private regardless of individual settings.';
+$lang['options_public_station_diary_settings_saved'] = 'Public Station Diary settings have been saved successfully.';
+$lang['options_enabled'] = 'Enabled';
+$lang['options_disabled'] = 'Disabled';
+
 // Bands
 
 $lang['options_bands'] = "Bands";

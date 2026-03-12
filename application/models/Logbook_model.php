@@ -1175,29 +1175,47 @@ class Logbook_model extends CI_Model
     $sat_name = '';
     if ($data['COL_SAT_NAME'] == 'AO-7') {
       if ($data['COL_BAND'] == '2m' && $data['COL_BAND_RX'] == '10m') {
-        $sat_name = 'AO-7[A]';
+        $sat_name = 'AO-7_[V/a]';
       }
       if ($data['COL_BAND'] == '70cm' && $data['COL_BAND_RX'] == '2m') {
-        $sat_name = 'AO-7[B]';
+        $sat_name = 'AO-7_[U/v]';
       }
+    } else if ($data['COL_SAT_NAME'] == 'SO-50') {
+      $sat_name = 'SO-50_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'SO-125') {
+      $sat_name = 'SO-125_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'RS-44') {
+      $sat_name = 'RS-44_[V/u]';
+    } else if ($data['COL_SAT_NAME'] == 'NO-44') {
+      $sat_name = 'NO-44_[APRS]';
+    } else if ($data['COL_SAT_NAME'] == 'JO-97') {
+      $sat_name = 'JO-97_[U/v]';
+    } else if ($data['COL_SAT_NAME'] == 'FO-29') {
+      $sat_name = 'FO-29_[V/u]';
+    } else if( $data['COL_SAT_NAME'] == 'AO-91') {
+        $sat_name = 'AO-91_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'AO-123') {
+        $sat_name = 'AO-123_[FM]';
+    } else if ($data['COL_SAT_NAME'] == 'AO-73') {
+        $sat_name = 'AO-73_[U/v]';
     } else if ($data['COL_SAT_NAME'] == 'MESAT-1') {
       $sat_name = 'MESAT1';
     } else if ($data['COL_SAT_NAME'] == 'SONATE-2') {
       $sat_name = 'SONATE-2 APRS';
     } else if ($data['COL_SAT_NAME'] == 'QMR-KWT-2') {
-      $sat_name = 'QMR-KWT-2_(RS95S)';
+      $sat_name = 'RS95S_[FM]';
     } else if ($data['COL_SAT_NAME'] == 'Lobachevsky') {
-      $sat_name = 'Lobachevsky_(RS83S)';
+      $sat_name = 'RS83S_[FM]';
     } else if ($data['COL_SAT_NAME'] == 'BOTAN') {
       if ($data['COL_MODE'] == 'PKT') {
         $sat_name = 'BOTAN APRS';
       }
     } else if ($data['COL_SAT_NAME'] == 'SONATE-2') {
       if ($data['COL_MODE'] == 'PKT') {
-        $sat_name = 'SONATE-2 APRS';
+        $sat_name = 'SONATE-2_[APRS]';
       }
     } else if ($data['COL_SAT_NAME'] == 'QO-100') {
-      $sat_name = 'QO-100_NB';
+      $sat_name = 'QO-100_[NB]';
     } else if ($data['COL_SAT_NAME'] == 'AO-92') {
       if ($data['COL_BAND'] == '70cm' && $data['COL_BAND_RX'] == '2m') {
         $sat_name = 'AO-92_U/v';
@@ -1214,9 +1232,9 @@ class Logbook_model extends CI_Model
       }
     } else if ($data['COL_SAT_NAME'] == 'PO-101') {
       if ($data['COL_MODE'] == 'PKT') {
-        $sat_name = 'PO-101[APRS]';
+        $sat_name = 'PO-101_[APRS]';
       } else {
-        $sat_name = 'PO-101[FM]';
+        $sat_name = 'PO-101_[FM]';
       }
     } else if ($data['COL_SAT_NAME'] == 'FO-118') {
       if ($data['COL_BAND'] == '2m') {
@@ -1230,12 +1248,12 @@ class Logbook_model extends CI_Model
       }
     } else if ($data['COL_SAT_NAME'] == 'ARISS' || $data['COL_SAT_NAME'] == 'ISS') {
       if ($data['COL_MODE'] == 'FM') {
-        $sat_name = 'ISS-FM';
+        $sat_name = 'ISS_[FM]';
       } else if ($data['COL_MODE'] == 'PKT') {
-        $sat_name = 'ISS-DATA';
+        $sat_name = 'ISS_[APRS]';
       }
     } else if ($data['COL_SAT_NAME'] == 'CAS-3H') {
-      $sat_name = 'LilacSat-2';
+      $sat_name = 'CAS-3H_[FM]';
     } else {
       $sat_name = $data['COL_SAT_NAME'];
     }
@@ -5546,6 +5564,7 @@ class Logbook_model extends CI_Model
         }
       }
       // check lat / lng (depend info source) //
+      $stn_loc = array(0, 0); // Default fallback
       if ($row->COL_GRIDSQUARE != null) {
         $stn_loc = $this->qra->qra2latlong($row->COL_GRIDSQUARE);
       } elseif ($row->COL_VUCC_GRIDS != null) {
@@ -5572,12 +5591,14 @@ class Logbook_model extends CI_Model
 
           $stn_loc = $this->qra->get_midpoint($coords);
         }
-      } else {
-        if (isset($row->lat) && isset($row->long)) {
-          $stn_loc = array($row->lat, $row->long);
-        }
+      } elseif (isset($row->lat) && isset($row->long)) {
+        $stn_loc = array($row->lat, $row->long);
       }
       list($plot['lat'], $plot['lng']) = $stn_loc;
+      // Skip markers with no valid location
+      if ($plot['lat'] == 0 && $plot['lng'] == 0) {
+        continue;
+      }
       // add plot //
       $json["markers"][] = $plot;
     }
@@ -5853,6 +5874,66 @@ class Logbook_model extends CI_Model
       'month_qsos' => 0,
       'year_qsos' => 0
     );
+  }
+
+  /**
+   * Get QSOs for public station diary map display
+   * Uses date range and optionally filters by logbook/satellite
+   * 
+   * @param string $dateFrom Start date (Y-m-d format)
+   * @param string $dateTo End date (Y-m-d format)
+   * @param int $logbookId Logbook ID (0 for all user logbooks)
+   * @param bool $satOnly Filter for satellite QSOs only
+   * @param int $userId User ID (derived from logbook if not specified)
+   * @return object Query result with QSO records
+   */
+  public function get_qsos_for_public_map($dateFrom, $dateTo, $logbookId = 0, $satOnly = false, $userId = null)
+  {
+    $CI = &get_instance();
+    $CI->load->model('logbooks_model');
+    $CI->load->model('Stations');
+
+    // Get station IDs for the logbook or user
+    $stationIds = array();
+    if ($logbookId > 0) {
+      $logbookLocations = $CI->logbooks_model->list_logbook_relationships($logbookId);
+      if (!empty($logbookLocations)) {
+        $stationIds = $logbookLocations;
+      }
+      
+      // Get user_id from logbook if not provided
+      if ($userId === null) {
+        $logbookData = $CI->logbooks_model->logbook($logbookId)->row();
+        if ($logbookData) {
+          $userId = (int)$logbookData->user_id;
+        }
+      }
+    } else if ($userId !== null) {
+      // Get all station IDs for the user
+      $stations = $CI->Stations->all_of_user((int)$userId);
+      foreach ($stations as $station) {
+        $stationIds[] = (int)$station->station_id;
+      }
+    }
+
+    if (empty($stationIds)) {
+      return $this->db->limit(0)->get($this->config->item('table_name'));
+    }
+
+    // Build query for QSOs with necessary fields for map plotting
+    $this->db->select($this->config->item('table_name') . '.COL_CALL, COL_BAND, COL_MODE, COL_SUBMODE, COL_TIME_ON, COL_GRIDSQUARE, COL_VUCC_GRIDS, COL_SAT_NAME, COL_SAT_MODE, COL_PROP_MODE, COL_DXCC, COL_COUNTRY, COL_EQSL_QSL_RCVD, COL_LOTW_QSL_RCVD, COL_QSL_RCVD, dxcc_entities.name, dxcc_entities.lat, dxcc_entities.long');
+    $this->db->join('dxcc_entities', $this->config->item('table_name') . '.COL_DXCC = dxcc_entities.adif', 'left');
+    $this->db->where("DATE(COL_TIME_ON) BETWEEN '" . $this->db->escape_str($dateFrom) . "' AND '" . $this->db->escape_str($dateTo) . "'");
+    $this->db->where_in('station_id', $stationIds);
+
+    // Filter for satellite QSOs if requested
+    if ($satOnly) {
+      $this->db->where('COL_PROP_MODE', 'SAT');
+    }
+
+    $this->db->order_by('COL_TIME_ON', 'ASC');
+    
+    return $this->db->get($this->config->item('table_name'));
   }
 }
 

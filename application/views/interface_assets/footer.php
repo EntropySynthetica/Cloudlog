@@ -1205,6 +1205,9 @@ $(document).ready(function() {
 <?php } ?>
 
 <?php if ($this->uri->segment(1) == "logbook" && $this->uri->segment(2) != "view") { ?>
+    <!-- Quill editor for Station Diary modal -->
+    <script src="<?php echo base_url(); ?>assets/plugins/quill/quill.min.js"></script>
+    
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/L.Maidenhead.js"></script>
     <script id="leafembed" type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/leafembed.js" tileUrl="<?php echo $this->optionslib->get_option('option_map_tile_server'); ?>"></script>
     <script type="text/javascript">

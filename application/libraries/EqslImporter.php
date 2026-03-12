@@ -156,7 +156,7 @@ class EqslImporter
 			$time_on = date('Y-m-d', strtotime($record['qso_date'])) . " " . date('H:i', strtotime($record['time_on']));
 
 			// If we have a positive match from eQSL, record it in the DB according to the user's preferences
-			$qsl_rcvd = ($record['qsl_sent'] == "Y") ? $config['eqsl_rcvd_mark'] : '';
+			$qsl_rcvd = ($record['eqsl_qsl_rcvd'] == "Y") ? $config['eqsl_rcvd_mark'] : '';
 
 			$status = $this->CI->logbook_model->import_check($time_on, $record['call'], $record['band'], $record['mode'], $station_callsign, $station_id);
 			$qsoid = 0;

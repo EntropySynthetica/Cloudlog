@@ -157,6 +157,29 @@
 			border-radius: 4px;
 			font-weight: 600;
 		}
+
+		.diary-inline-image {
+			margin: 1rem 0;
+		}
+
+		.diary-inline-image.text-center {
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		.diary-inline-image img {
+			max-width: 100%;
+			height: auto;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+		}
+
+		.diary-inline-image .small {
+			font-size: 0.85rem;
+			color: #666;
+			margin-top: 0.25rem;
+		}
 	</style>
 </head>
 
@@ -180,6 +203,9 @@
 
 			<div class="diary-entries">
 				<?php
+				$CI =& get_instance();
+				$CI->load->model('note');
+				
 				foreach ($diary_entries->result() as $entry) {
 					$entry_date = (is_null($entry->created_at) || $entry->created_at === '' || $entry->created_at === '0000-00-00 00:00:00')
 						? null
@@ -188,6 +214,12 @@
 					$entry_time = (is_null($entry->created_at) || $entry->created_at === '' || $entry->created_at === '0000-00-00 00:00:00')
 						? null
 						: date('g:i A', strtotime($entry->created_at));
+					
+					// Process image shortcodes
+					$entryImages = isset($diary_images[$entry->id]) ? $diary_images[$entry->id] : array();
+					$processed = $CI->note->process_image_shortcodes($entry->note, $entryImages);
+					$processedNote = preg_replace('/<p><br\s*\/?><\/p>/i', '', $processed['content']);
+					$processedNote = preg_replace('/<\/p>\s*<br\s*\/?>\s*<p>/i', '</p><p>', $processedNote);
 				?>
 					<div class="diary-entry">
 						<?php if ($entry_date) { ?>
@@ -199,7 +231,7 @@
 							<?php echo htmlspecialchars($entry->title, ENT_QUOTES); ?>
 						</div>
 						<div class="entry-content">
-							<?php echo htmlspecialchars($entry->note, ENT_QUOTES); ?>
+							<?php echo $processedNote; ?>
 						</div>
 						<div class="entry-meta">
 							Saved: <?php echo $entry_date ? date('M d, Y \a\t g:i A', strtotime($entry->created_at)) : 'N/A'; ?>
