@@ -164,15 +164,11 @@ class EqslImporter
 			if ($status[0] == "Found") {
 				$qsoid = $status[1];
 				
-				// Add to batch update array instead of updating individually
+				// Add to batch update array using the primary key already found by import_check
+				// (avoids re-querying with the raw/un-normalized mode from the ADIF file)
 				$batch_updates[] = array(
-					'datetime' => $time_on,
-					'callsign' => $record['call'],
-					'band' => $record['band'],
-					'mode' => $record['mode'],
+					'qso_id'     => $qsoid,
 					'qsl_status' => $qsl_rcvd,
-					'station_callsign' => $station_callsign,
-					'station_id' => $station_id
 				);
 				
 				$eqsl_status = "Queued for batch update";
@@ -201,16 +197,13 @@ class EqslImporter
 			$dupes = $result['duplicates'];
 			log_message('info', 'eQSL Import: Batch updated ' . $updated . ' QSOs, ' . $dupes . ' duplicates skipped');
 			
-			// Update status messages in the qsos array for those that were updated
-			$update_count = 0;
+			// Update display status for each QSO using its primary key
 			foreach ($qsos as &$qso) {
 				if ($qso['eqsl_status'] == "Queued for batch update") {
-					if ($update_count < $updated) {
+					if (in_array($qso['qsoid'], $result['updated_ids'])) {
 						$qso['eqsl_status'] = "Updated";
-						$update_count++;
-					} elseif ($update_count < ($updated + $dupes)) {
+					} elseif (in_array($qso['qsoid'], $result['duplicate_ids'])) {
 						$qso['eqsl_status'] = "Already received an eQSL for this QSO.";
-						$update_count++;
 					}
 				}
 			}
