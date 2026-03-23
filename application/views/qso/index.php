@@ -886,6 +886,30 @@
   </div>
 </div>
 
+<!-- Callsign Lookup Overwrite Approval Modal -->
+<div class="modal fade" id="callsignOverwriteModal" tabindex="-1" aria-labelledby="callsignOverwriteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="callsignOverwriteModalLabel">
+          <i class="fas fa-user-edit me-2"></i>Update Existing Fields?
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">The corrected callsign returned different details from lookup sources and your previous QSO history.</p>
+        <p class="mb-3">Choose which existing fields you want to replace:</p>
+        <div id="callsignOverwriteConflicts"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="callsignOverwriteKeepExisting">Keep Existing</button>
+        <button type="button" class="btn btn-primary" id="callsignOverwriteReplaceSelected">Replace Selected</button>
+        <button type="button" class="btn btn-success" id="callsignOverwriteReplaceAll">Replace All</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <script>
