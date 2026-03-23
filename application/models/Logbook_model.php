@@ -1945,9 +1945,11 @@ class Logbook_model extends CI_Model
   {
     if ($trusted || ($this->logbook_model->check_qso_is_accessible($id))) {
       $this->db->select($this->config->item('table_name') . '.*, station_profile.*, dxcc_entities.*, coalesce(dxcc_entities_2.name, "- NONE -") as station_country, dxcc_entities_2.end as station_end, eQSL_images.image_file as eqsl_image_file, lotw.callsign as lotwuser, lotw.lastupload');
+      $this->db->select("TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name", false);
       $this->db->from($this->config->item('table_name'));
       $this->db->join('dxcc_entities', $this->config->item('table_name') . '.col_dxcc = dxcc_entities.adif', 'left');
       $this->db->join('station_profile', 'station_profile.station_id = ' . $this->config->item('table_name') . '.station_id', 'left');
+      $this->db->join($this->config->item('auth_table') . ' users', 'station_profile.user_id = users.user_id', 'left');
       $this->db->join('dxcc_entities as dxcc_entities_2', 'station_profile.station_dxcc = dxcc_entities_2.adif', 'left outer');
       $this->db->join('eQSL_images', $this->config->item('table_name') . '.COL_PRIMARY_KEY = eQSL_images.qso_id', 'left outer');
       $this->db->join('lotw_users lotw', $this->config->item('table_name') . '.COL_CALL = lotw.callsign', 'left');
@@ -1965,8 +1967,9 @@ class Logbook_model extends CI_Model
      */
   function get_hrdlog_qsos($station_id, $limit = 1000, $offset = 0)
   {
-    $sql = 'select thcv.*, dxcc_entities.name as station_country from ' . $this->config->item('table_name') . ' thcv ' .
+    $sql = "select thcv.*, dxcc_entities.name as station_country, TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name from " . $this->config->item('table_name') . ' thcv ' .
       ' left join station_profile on thcv.station_id = station_profile.station_id' .
+      ' left join ' . $this->config->item('auth_table') . ' users on station_profile.user_id = users.user_id' .
       ' left outer join dxcc_entities on thcv.col_my_dxcc = dxcc_entities.adif' .
       ' where thcv.station_id = ' . intval($station_id) .
       ' and (COL_HRDLOG_QSO_UPLOAD_STATUS is NULL
@@ -1991,8 +1994,9 @@ class Logbook_model extends CI_Model
     if ((!$trusted) && (!$CI->stations->check_station_is_accessible($station_id))) {
       return;
     }
-    $sql = 'select thcv.*, dxcc_entities.name as station_country from ' . $this->config->item('table_name') . ' thcv ' .
+    $sql = "select thcv.*, dxcc_entities.name as station_country, TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name from " . $this->config->item('table_name') . ' thcv ' .
       ' left join station_profile on thcv.station_id = station_profile.station_id' .
+      ' left join ' . $this->config->item('auth_table') . ' users on station_profile.user_id = users.user_id' .
       ' left outer join dxcc_entities on thcv.col_my_dxcc = dxcc_entities.adif' .
       ' where thcv.station_id = ' . intval($station_id) .
       ' and (COL_QRZCOM_QSO_UPLOAD_STATUS is NULL
@@ -2017,9 +2021,11 @@ class Logbook_model extends CI_Model
       return;
     }
     $sql = "
-			SELECT qsos.*, station_profile.*, dxcc_entities.name as station_country
+        SELECT qsos.*, station_profile.*, dxcc_entities.name as station_country,
+        TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name
 			FROM %s qsos
 			INNER JOIN station_profile ON qsos.station_id = station_profile.station_id
+        LEFT JOIN " . $this->config->item('auth_table') . " users ON station_profile.user_id = users.user_id
 			LEFT JOIN dxcc_entities on qsos.col_my_dxcc = dxcc_entities.adif
 			LEFT OUTER JOIN webadif ON qsos.COL_PRIMARY_KEY = webadif.qso_id
 			WHERE qsos.station_id = %d
