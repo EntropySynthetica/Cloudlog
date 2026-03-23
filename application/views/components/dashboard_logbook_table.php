@@ -47,6 +47,9 @@ function echo_table_header_col($ctx, $name)
 		case 'Name':
 			echo '<th>' . $ctx->lang->line('general_word_name') . '</th>';
 			break;
+		case 'Comment':
+			echo '<th>' . $ctx->lang->line('general_word_comment') . '</th>';
+			break;
 		case 'Flag':
 			echo '<th>&nbsp;</th>';
 			break;
@@ -139,6 +142,9 @@ function echo_table_col($row, $name)
 			break;
 		case 'Name':
 			echo '<td>' . ($row->COL_NAME) . '</td>';
+			break;
+		case 'Comment':
+			echo '<td>' . ($row->COL_COMMENT) . '</td>';
 			break;
 		case 'Flag':
 			$ci->load->library('DxccFlag');
