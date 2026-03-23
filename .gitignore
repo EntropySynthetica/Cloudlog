@@ -10,9 +10,12 @@
 /uploads/*.ADI
 /uploads/*.tq8
 /uploads/*.TQ8
+/uploads/diary/
+/uploads/lotw/
 /install/*
 /updates/*.xml
 /updates/*.html
+/backup/logbook.adi
 /images/eqsl_card_images/*.jpg
 /updates/clublog_scp.txt
 /assets/qslcard/*
