@@ -285,7 +285,17 @@ class Callhistory extends CI_Controller {
         }
 
         $user_id = (int)$this->session->userdata('user_id');
-        $raw_changes = $this->input->post('changes', TRUE);
+        $raw_changes_json = (string)$this->input->post('changes_json', FALSE);
+        $raw_changes = array();
+        if ($raw_changes_json !== '') {
+            $decoded_changes = json_decode($raw_changes_json, TRUE);
+            if (is_array($decoded_changes)) {
+                $raw_changes = $decoded_changes;
+            }
+        }
+        if (empty($raw_changes)) {
+            $raw_changes = $this->input->post('changes', TRUE);
+        }
         $file_id = (int)$this->input->post('file_id', TRUE);
 
         $file = $this->callhistory_model->get_for_user_by_id($user_id, $file_id);

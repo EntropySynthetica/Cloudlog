@@ -12,6 +12,7 @@
             <p class="text-muted small mb-2">Only QSOs with <strong>no existing SIG data</strong> are shown. Review the proposed values below, then click <strong>Apply Selected</strong> to write them.</p>
             <form method="post" action="<?php echo site_url('callhistory/scan_apply'); ?>" id="apply-form">
                 <input type="hidden" name="file_id" value="<?php echo (int)$scan_file->id; ?>">
+                <input type="hidden" name="changes_json" id="changes_json" value="">
                 <div class="mb-2 d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="select-all-btn"><i class="fas fa-check-double"></i> Select All</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all-btn"><i class="fas fa-times"></i> Deselect All</button>
@@ -35,11 +36,15 @@
                             <?php foreach ($preview as $i => $row) { ?>
                             <tr>
                                 <td>
-                                    <input type="checkbox" class="row-check" name="changes[<?php echo $i; ?>][qso_id]"
-                                           value="<?php echo (int)$row['qso_id']; ?>" checked>
-                                    <input type="hidden" name="changes[<?php echo $i; ?>][station_id]" value="<?php echo (int)$row['station_id']; ?>">
-                                    <input type="hidden" name="changes[<?php echo $i; ?>][new_sig]" value="<?php echo htmlspecialchars($row['new_sig']); ?>">
-                                    <input type="hidden" name="changes[<?php echo $i; ?>][new_sig_info]" value="<?php echo htmlspecialchars($row['new_sig_info']); ?>">
+                                    <input
+                                        type="checkbox"
+                                        class="row-check"
+                                        value="<?php echo (int)$row['qso_id']; ?>"
+                                        data-station-id="<?php echo (int)$row['station_id']; ?>"
+                                        data-new-sig="<?php echo htmlspecialchars($row['new_sig']); ?>"
+                                        data-new-sig-info="<?php echo htmlspecialchars($row['new_sig_info']); ?>"
+                                        checked
+                                    >
                                 </td>
                                 <td><?php echo htmlspecialchars($row['callsign']); ?></td>
                                 <td><?php echo htmlspecialchars($row['time_on']); ?></td>
@@ -215,25 +220,29 @@ $(document).ready(function () {
         }
     });
 
+    function getAllRowChecks() {
+        return $(table.rows().nodes()).find('.row-check');
+    }
+
     function updateSelectedCount() {
-        var count = $('#callhistory-preview-table tbody .row-check:checked').length;
+        var count = getAllRowChecks().filter(':checked').length;
         $('#selected-count').text(count);
     }
 
     $('#check-all').on('change', function () {
         var checked = $(this).prop('checked');
-        $('#callhistory-preview-table tbody .row-check').prop('checked', checked);
+        getAllRowChecks().prop('checked', checked);
         updateSelectedCount();
     });
 
     $('#select-all-btn').on('click', function () {
-        $('#callhistory-preview-table tbody .row-check').prop('checked', true);
+        getAllRowChecks().prop('checked', true);
         $('#check-all').prop('checked', true);
         updateSelectedCount();
     });
 
     $('#deselect-all-btn').on('click', function () {
-        $('#callhistory-preview-table tbody .row-check').prop('checked', false);
+        getAllRowChecks().prop('checked', false);
         $('#check-all').prop('checked', false);
         updateSelectedCount();
     });
@@ -243,20 +252,24 @@ $(document).ready(function () {
     });
 
     $('#apply-form').on('submit', function (e) {
-        // Disable checkboxes that are unchecked so their hidden inputs are not submitted
-        $('#callhistory-preview-table tbody .row-check:not(:checked)').each(function () {
-            var idx = $(this).attr('name').replace('[qso_id]', '');
-            $('[name="' + idx + '[station_id]"],' +
-              '[name="' + idx + '[new_sig]"],' +
-              '[name="' + idx + '[new_sig_info]"]').prop('disabled', true);
-            $(this).prop('disabled', true);
+        var selectedChanges = [];
+
+        getAllRowChecks().filter(':checked').each(function () {
+            selectedChanges.push({
+                qso_id: parseInt(this.value, 10) || 0,
+                station_id: parseInt($(this).data('station-id'), 10) || 0,
+                new_sig: $(this).data('new-sig') || '',
+                new_sig_info: $(this).data('new-sig-info') || ''
+            });
         });
 
-        var count = $('#apply-form input.row-check:not(:disabled)').length;
-        if (count === 0) {
+        if (selectedChanges.length === 0) {
             e.preventDefault();
             alert('No rows selected.');
+            return;
         }
+
+        $('#changes_json').val(JSON.stringify(selectedChanges));
     });
 });
 </script>
