@@ -7,6 +7,8 @@ $(document).ready(function () {
 		sessiondata = await getSession();			// save sessiondata global (we need it later, when adding qso)
 		await restoreContestSession(sessiondata);	// wait for restoring until finished
 		setRst($("#mode").val());
+		setContestingTabOrder($("#exchangetype").val());
+		$("#callsign").focus().select();
 	})();
 
 	/* On Key up Calculate Bearing and Distance for Contest Gridsquare */
@@ -19,6 +21,64 @@ $(document).ready(function () {
 		calculateContestBearingDistance();
 	});
 });
+
+function setContestingTabOrder(exchangetype) {
+	var orderedFieldIds = ['callsign', 'rst_sent'];
+
+	switch (exchangetype) {
+		case 'Exchange':
+			orderedFieldIds.push('exch_sent');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_rcvd');
+			break;
+		case 'Gridsquare':
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_gridsquare_r');
+			break;
+		case 'Serial':
+			orderedFieldIds.push('exch_serial_s');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_serial_r');
+			break;
+		case 'Serialexchange':
+			orderedFieldIds.push('exch_serial_s');
+			orderedFieldIds.push('exch_sent');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_serial_r');
+			orderedFieldIds.push('exch_rcvd');
+			break;
+		case 'Serialgridsquare':
+			orderedFieldIds.push('exch_serial_s');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_serial_r');
+			orderedFieldIds.push('exch_gridsquare_r');
+			break;
+		default:
+			orderedFieldIds.push('rst_rcvd');
+			break;
+	}
+
+	orderedFieldIds.push('name');
+	orderedFieldIds.push('comment');
+	orderedFieldIds.push('save_qso');
+
+	$('#qso_input').find('input, select, button, textarea').attr('tabindex', '-1');
+
+	var tabindex = 1;
+	orderedFieldIds.forEach(function (id) {
+		var $field = $('#' + id);
+		if ($field.length === 0 || $field.is(':disabled')) {
+			return;
+		}
+
+		if (!$field.is(':visible')) {
+			return;
+		}
+
+		$field.attr('tabindex', tabindex);
+		tabindex += 1;
+	});
+}
 
 function calculateCallsignBearingDistance(callsign) {
 	if (!callsign || callsign.length < 3) {
@@ -174,6 +234,7 @@ $('#exchangetype').change(function () {
 	var formdata = new FormData(document.getElementById("qso_input"));
 	setSession(formdata);
 	setExchangetype(exchangetype);
+	setContestingTabOrder(exchangetype);
 });
 
 function setSession(formdata) {
@@ -506,6 +567,8 @@ function setExchangetype(exchangetype) {
 		$(".gridsquarer").show();
 		$(".gridsquares").show();
 	}
+
+	setContestingTabOrder(exchangetype);
 }
 
 /*
