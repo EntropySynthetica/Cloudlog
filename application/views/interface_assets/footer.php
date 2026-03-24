@@ -1818,7 +1818,7 @@ $(document).ready(function() {
 
         <?php if ($this->session->userdata('user_pota_lookup') == 1) { ?>
             $('#pota_ref').change(function() {
-                var pota = $('#pota_ref').val();
+                var pota = ($('#pota_ref').val() || '').split(',')[0].trim();
                 if (pota.length > 0) {
                     $.ajax({
                         url: base_url + 'index.php/qso/get_pota_info',

@@ -3,6 +3,20 @@
 class Logbook_model extends CI_Model
 {
 
+  private function normalize_pota_refs($value)
+  {
+    if ($value === null) {
+      return '';
+    }
+
+    $parts = preg_split('/\s*,\s*/', strtoupper(trim((string)$value)));
+    $parts = array_filter($parts, static function ($part) {
+      return $part !== '';
+    });
+
+    return implode(',', $parts);
+  }
+
   /**
    * Clear dashboard cache for all users with access to a station
    * This should be called whenever QSOs are added, edited, or deleted
@@ -346,7 +360,7 @@ class Logbook_model extends CI_Model
       'COL_CNTY' => $clean_county_input,
       'COL_SOTA_REF' => $this->input->post('sota_ref') == null ? '' : trim($this->input->post('sota_ref')),
       'COL_WWFF_REF' => $this->input->post('wwff_ref') == null ? '' : trim($this->input->post('wwff_ref')),
-      'COL_POTA_REF' => $this->input->post('pota_ref') == null ? '' : trim($this->input->post('pota_ref')),
+      'COL_POTA_REF' => $this->normalize_pota_refs($this->input->post('pota_ref')),
       'COL_SIG' => $this->input->post('sig') == null ? '' : trim($this->input->post('sig')),
       'COL_SIG_INFO' => $this->input->post('sig_info') == null ? '' : trim($this->input->post('sig_info')),
       'COL_DARC_DOK' => $darc_dok  == null ? '' : strtoupper(trim($darc_dok)),
@@ -1457,7 +1471,7 @@ class Logbook_model extends CI_Model
       'COL_IOTA' => $this->input->post('iota_ref'),
       'COL_SOTA_REF' => $this->input->post('sota_ref'),
       'COL_WWFF_REF' => $this->input->post('wwff_ref'),
-      'COL_POTA_REF' => $this->input->post('pota_ref'),
+      'COL_POTA_REF' => $this->normalize_pota_refs($this->input->post('pota_ref')),
       'COL_TX_PWR' => $txpower,
       'COL_SIG' => $this->input->post('sig'),
       'COL_SIG_INFO' => $this->input->post('sig_info'),

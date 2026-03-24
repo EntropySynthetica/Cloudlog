@@ -444,7 +444,7 @@ var favs={};
 	});
 
 	$('#pota_ref').selectize({
-		maxItems: 1,
+		maxItems: null,
 		closeAfterSelect: true,
 		createOnBlur: true,
 		selectOnTab: true,
@@ -474,8 +474,25 @@ var favs={};
 	});
 
 	$('#pota_ref').change(function(){
-		$('#pota_info').html('<a target="_blank" href="https://pota.app/#/park/'+$('#pota_ref').val()+'"><img width="32" height="32" src="'+base_url+'images/icons/pota.app.png"></a>');
-		$('#pota_info').attr('title', 'Lookup '+$('#pota_ref').val()+' reference info on pota.co');
+		var raw = $('#pota_ref').val() || '';
+		var refs = raw.split(',').map(function(ref) {
+			return ref.trim();
+		}).filter(function(ref) {
+			return ref.length > 0;
+		});
+
+		if (refs.length === 0) {
+			$('#pota_info').html('');
+			$('#pota_info').attr('title', '');
+			return;
+		}
+
+		var links = refs.map(function(ref) {
+			return '<a target="_blank" href="https://pota.app/#/park/' + ref + '"><img width="32" height="32" src="' + base_url + 'images/icons/pota.app.png"></a>';
+		}).join(' ');
+
+		$('#pota_info').html(links);
+		$('#pota_info').attr('title', 'Lookup ' + refs.join(', ') + ' reference info on pota.app');
 	});
 
 	$('#darc_dok').selectize({
