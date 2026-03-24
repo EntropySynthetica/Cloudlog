@@ -9,6 +9,10 @@
     var icon_dot_url = "<?php echo base_url(); ?>assets/images/dot.png";
     // get the user_callsign from session
     var my_call = "<?php echo $this->session->userdata('user_callsign'); ?>".toUpperCase();
+    // get the user_gridsquare from session or view data
+    var my_gridsquare = "<?php echo isset($my_gridsquare) ? $my_gridsquare : $this->session->userdata('user_locator'); ?>";
+    // get the user's measurement preference
+    var measurement_base = "<?php echo $this->session->userdata('user_measurement_base') ? $this->session->userdata('user_measurement_base') : $this->config->item('measurement_base'); ?>";
 </script>
 
 <script>

@@ -2,11 +2,129 @@
 $("#callsign").focus();
 
 var sessiondata = {};
-$(document).ready(async function () {
-	sessiondata = await getSession();			// save sessiondata global (we need it later, when adding qso)
-	await restoreContestSession(sessiondata);	// wait for restoring until finished
-	setRst($("#mode").val());
+$(document).ready(function () {
+	(async function() {
+		sessiondata = await getSession();			// save sessiondata global (we need it later, when adding qso)
+		await restoreContestSession(sessiondata);	// wait for restoring until finished
+		setRst($("#mode").val());
+	})();
+
+	/* On Key up Calculate Bearing and Distance for Contest Gridsquare */
+	$(document).on('keyup', '#exch_gridsquare_r', function(){
+		calculateContestBearingDistance();
+	});
+
+	/* On Change also calculate Bearing and Distance for Contest Gridsquare */
+	$(document).on('change', '#exch_gridsquare_r', function(){
+		calculateContestBearingDistance();
+	});
 });
+
+function calculateCallsignBearingDistance(callsign) {
+	if (!callsign || callsign.length < 3) {
+		return;
+	}
+
+	// Only proceed if we have a home gridsquare
+	if (!my_gridsquare || my_gridsquare.length < 4) {
+		return;
+	}
+
+	// Look up the callsign's QRA and get bearing/distance
+	$.ajax({
+		url: base_url + 'index.php/logbook/contest_callsign_qra',
+		type: 'post',
+		data: {
+			callsign: callsign,
+			my_grid: my_gridsquare
+		},
+		success: function(data) {
+			if (data && (data.bearing !== '' || data.distance > 0)) {
+				var unit = (measurement_base === 'M' ? ' mi' : measurement_base === 'N' ? ' nmi' : ' km');
+
+				// Display in the always-visible DXCC bearing area
+				if (data.bearing !== '' && data.bearing !== undefined) {
+					$('#locator_info_contest_dxcc').html(String(data.bearing) + '°');
+					$('#locator_info_contest_dxcc').show();
+				}
+				if (data.distance && data.distance > 0) {
+					$('#distance_contest_dxcc').text(parseFloat(data.distance).toFixed(0) + unit);
+					$('#distance_contest_dxcc').show();
+				}
+			}
+		},
+		error: function(xhr, status, error) {
+			console.log("Callsign QRA lookup error: " + error);
+		},
+	});
+}
+
+function calculateContestBearingDistance() {
+	var received_grid = $("#exch_gridsquare_r").val();
+	
+	if (!received_grid || received_grid.length < 4) {
+		$('#locator_info_contest').text("");
+		$('#distance_contest').val("");
+		return;
+	}
+
+	// Only proceed if we have a home gridsquare
+	if (!my_gridsquare || my_gridsquare.length < 4) {
+		$('#locator_info_contest').text("No home grid");
+		return;
+	}
+
+	// Call backend to calculate bearing
+	$.ajax({
+		url: base_url + 'index.php/logbook/contest_bearing',
+		type: 'post',
+		data: {
+			grid: received_grid,
+			my_grid: my_gridsquare
+		},
+		success: function(data) {
+			if (data && data.length > 0) {
+				// Format bearing with degree symbol
+				$('#locator_info_contest').html(data.trim() + '°');
+			} else {
+				$('#locator_info_contest').text("");
+			}
+		},
+		error: function(xhr, status, error) {
+			console.log("Bearing error: " + error);
+		},
+	});
+
+	// Call backend to calculate distance
+	$.ajax({
+		url: base_url + 'index.php/logbook/contest_distance',
+		type: 'post',
+		data: {
+			grid: received_grid,
+			my_grid: my_gridsquare
+		},
+		success: function(data) {
+			if (data && data.length > 0 && !isNaN(data)) {
+				// Format distance with unit based on user preference
+				var distance_value = parseFloat(data).toFixed(2);
+				var unit = ' km'; // Default
+				
+				if (measurement_base === 'M') {
+					unit = ' mi';
+				} else if (measurement_base === 'N') {
+					unit = ' nmi';
+				}
+				
+				$('#distance_contest').val(distance_value + unit);
+			} else {
+				$('#distance_contest').val("");
+			}
+		},
+		error: function(xhr, status, error) {
+			console.log("Distance error: " + error);
+		},
+	});
+}
 
 // Resets the logging form and deletes session from database
 function reset_contest_session() {
@@ -20,6 +138,12 @@ function reset_contest_session() {
 	$('#exch_sent').val("");
 	$('#exch_rcvd').val("");
 	$("#exch_gridsquare_r").val("");
+	$('#locator_info_contest').text("");
+	$('#distance_contest').val("");
+	$('#locator_info_contest_dxcc').text("");
+	$('#distance_contest_dxcc').text("");
+	$('#locator_info_contest_dxcc').hide();
+	$('#distance_contest_dxcc').hide();
 
 	$("#callsign").focus();
 	setRst($("#mode").val());
@@ -260,6 +384,11 @@ function checkIfWorkedBefore() {
 				}
 			}
 		});
+
+		// If gridsquare field is empty, try to get it from callsign lookup
+		if ($("#exch_gridsquare_r").val().length === 0) {
+			calculateCallsignBearingDistance(call);
+		}
 	} else {
 		$('#callsign_info').text("");
 	}
@@ -273,6 +402,12 @@ async function reset_log_fields() {
 	$('#exch_rcvd').val("");
 	$('#exch_serial_r').val("");
 	$('#exch_gridsquare_r').val("");
+	$('#locator_info_contest').text("");
+	$('#distance_contest').val("");
+	$('#locator_info_contest_dxcc').text("");
+	$('#distance_contest_dxcc').text("");
+	$('#locator_info_contest_dxcc').hide();
+	$('#distance_contest_dxcc').hide();
 	$("#callsign").focus();
 	setRst($("#mode").val());
 	$('#callsign_info').text("");

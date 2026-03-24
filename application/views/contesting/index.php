@@ -109,6 +109,8 @@
                                 <label for="callsign"><?php echo lang('gen_hamradio_callsign'); ?></label>
                                 <input type="text" class="form-control form-control-sm" id="callsign" name="callsign" required pattern="\S+" title="Whitespace is not allowed" tabindex="1">
                                 <small id="callsign_info" class="badge text-bg-danger"></small>
+                                <small id="locator_info_contest_dxcc" class="badge text-bg-info ms-1" style="display:none"></small>
+                                <small id="distance_contest_dxcc" class="badge text-bg-secondary ms-1" style="display:none"></small>
                             </div>
 
                             <div class="mb-3 col-md-1">
@@ -149,6 +151,12 @@
 							<div style="display:none" class="mb-3 col-md-2 gridsquarer">
 								<label for="exch_gridsquare_r"><?php echo lang('contesting_exchange_gridsquare_r'); ?></label>
 								<input type="text" class="form-control form-control-sm" name="locator" id="exch_gridsquare_r" value="" maxlength="8" tabindex="6">
+								<small id="locator_info_contest" class="badge text-bg-info"></small>
+							</div>
+
+							<div style="display:none" class="mb-3 col-md-1 gridsquarer">
+								<label for="distance_contest"><?php echo lang('gen_hamradio_distance'); ?></label>
+								<input type="text" class="form-control form-control-sm" id="distance_contest" value="" disabled>
 							</div>
                         </div>
 
