@@ -245,6 +245,8 @@
 							<div class="dropdown-menu" aria-labelledby="navbarDropdown">
 								<a class="dropdown-item" href="<?php echo site_url('propagationadvisor'); ?>" title="<?php echo lang('menu_propagation_advisor'); ?>"><i class="fas fa-clock"></i> <?php echo lang('menu_propagation_advisor'); ?></a>
 								<div class="dropdown-divider"></div>
+								<a class="dropdown-item" href="<?php echo site_url('callhistory'); ?>" title="Call History"><i class="fas fa-address-book"></i> Call History</a>
+								<div class="dropdown-divider"></div>
 								<a class="dropdown-item" href="<?php echo site_url('dxcluster'); ?>" title="DX Cluster"><i class="fas fa-broadcast-tower"></i> DX Cluster</a>
 								<div class="dropdown-divider"></div>
 								<a class="dropdown-item" href="<?php echo site_url('workabledxcc'); ?>" title="Upcoming DXPeditions"><i class="fas fa-globe"></i> Upcoming DXPeditions</a>

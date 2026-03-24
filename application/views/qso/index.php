@@ -849,6 +849,10 @@
           <h4 class="card-title" id="timesWorked" style="font-size: 16px; font-weight: bold;"><?php echo lang('qso_title_previous_contacts'); ?></h4>
         </div>
 
+        <div id="qso-callhistory-inline" class="px-3 pt-2 pb-1 border-bottom" style="display: none;">
+          <div id="qso-callhistory-results"></div>
+        </div>
+
         <div id="partial_view" style="font-size: 0.95rem;"></div>
 
         <div id="qso-last-table" hx-get="<?php echo site_url('/qso/component_past_contacts'); ?>" hx-trigger="load, every 5s">

@@ -786,6 +786,7 @@ function reset_fields() {
 	$('.callsign-suggest').hide();
 	$('.dxccsummary').remove();
 	$('#timesWorked').html(lang_qso_title_previous_contacts);
+	renderQsoCallhistoryPanel([], 'Type a callsign to see membership details from your uploaded call history files.');
 }
 
 function resetTimers(manual) {
@@ -1211,6 +1212,90 @@ function convert_case(str) {
 	});
 }
 
+var qsoCallhistoryLookupTimer = null;
+
+function qsoCallhistoryEscapeHtml(unsafeText) {
+	return String(unsafeText || '').replace(/[&<>\"]/g, function(tag) {
+		var replacements = {
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;'
+		};
+		return replacements[tag] || tag;
+	});
+}
+
+function renderQsoCallhistoryPanel(matches, defaultText) {
+	var $card = $('#qso-callhistory-inline');
+	var $panel = $('#qso-callhistory-results');
+	if ($panel.length === 0 || $card.length === 0) {
+		return;
+	}
+
+	if (!matches || matches.length === 0) {
+		$panel.html('');
+		$card.hide();
+		return;
+	}
+
+	var html = '<ul class="list-group list-group-flush">';
+
+	$.each(matches, function(_, match) {
+		var line = '<strong>' + qsoCallhistoryEscapeHtml(match.organization_label || 'Member') + '</strong>';
+		if (match.exch1) {
+			line += ' #' + qsoCallhistoryEscapeHtml(match.exch1);
+		}
+		if (match.name) {
+			line += ' - ' + qsoCallhistoryEscapeHtml(match.name);
+		}
+
+		var sigValue = qsoCallhistoryEscapeHtml(match.organization_label || '');
+		var sigInfoValue = qsoCallhistoryEscapeHtml(match.exch1 || '');
+		if (sigValue !== '' || sigInfoValue !== '') {
+			line += ' <button type="button" class="btn btn-sm btn-outline-secondary qso-copy-sig-btn ms-2 py-0 px-2" data-sig="' + sigValue + '" data-siginfo="' + sigInfoValue + '"><i class="fas fa-copy me-1"></i>Copy to SIG</button>';
+		}
+
+		html += '<li class="list-group-item px-0 py-2">' + line + '</li>';
+	});
+
+	html += '</ul>';
+	$panel.html(html);
+	$card.show();
+}
+
+$(document).on('click', '.qso-copy-sig-btn', function() {
+	var sig = $(this).data('sig') || '';
+	var sigInfo = $(this).data('siginfo') || '';
+
+	$('#sig').val(sig);
+	$('#sig_info').val(sigInfo);
+});
+
+function lookupQsoCallhistory(callsign) {
+	if (qsoCallhistoryLookupTimer !== null) {
+		clearTimeout(qsoCallhistoryLookupTimer);
+	}
+
+	qsoCallhistoryLookupTimer = setTimeout(function() {
+		$.ajax({
+			url: base_url + 'index.php/callhistory/lookup',
+			type: 'post',
+			data: { callsign: callsign },
+			success: function(response) {
+				if (!response || response.status !== 'ok') {
+					renderQsoCallhistoryPanel([], 'No call history match for this callsign.');
+					return;
+				}
+				renderQsoCallhistoryPanel(response.matches || [], 'No call history match for this callsign.');
+			},
+			error: function() {
+				renderQsoCallhistoryPanel([], 'Call history lookup failed.');
+			}
+		});
+	}, 250);
+}
+
 $('#dxcc_id').on('change', function() {
 	$.getJSON(base_url + 'index.php/logbook/jsonentity/' + $(this).val(), function (result) {
 		if (result.dxcc.name != undefined) {
@@ -1257,6 +1342,7 @@ $("#callsign").keyup(function() {
 	if ($(this).val().length >= 3) {
 	  $('.callsign-suggest').show();
 	  $callsign = $(this).val().replace('Ø', '0');
+	  lookupQsoCallhistory($callsign.toUpperCase());
 	  $.ajax({
 		url: 'lookup/scp',
 		method: 'POST',
@@ -1267,6 +1353,8 @@ $("#callsign").keyup(function() {
 		  $('.callsign-suggestions').text(result);
 		}
 	  });
+	} else {
+	  renderQsoCallhistoryPanel([], 'Type a callsign to see membership details from your uploaded call history files.');
 	}
   });
 

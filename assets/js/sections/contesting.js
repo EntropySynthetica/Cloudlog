@@ -10,6 +10,7 @@ $(document).ready(function () {
 		setContestingTabOrder($("#exchangetype").val());
 		$("#callsign").focus().select();
 	})();
+	renderCallhistoryPanel([]);
 
 	/* On Key up Calculate Bearing and Distance for Contest Gridsquare */
 	$(document).on('keyup', '#exch_gridsquare_r', function(){
@@ -21,6 +22,67 @@ $(document).ready(function () {
 		calculateContestBearingDistance();
 	});
 });
+
+function escapeHtml(unsafeText) {
+	return String(unsafeText || '').replace(/[&<>"]/g, function (tag) {
+		var replacements = {
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;'
+		};
+		return replacements[tag] || tag;
+	});
+}
+
+function renderCallhistoryPanel(matches) {
+	var $card = $('#callhistory-info-panel');
+	var $panel = $('#callhistory-results');
+	if ($panel.length === 0 || $card.length === 0) {
+		return;
+	}
+
+	if (!matches || matches.length === 0) {
+		$card.hide();
+		return;
+	}
+
+	var html = '<ul class="list-group list-group-flush">';
+
+	$.each(matches, function (_, match) {
+		var line = '<strong>' + escapeHtml(match.organization_label || 'Member') + '</strong>';
+		if (match.exch1) {
+			line += ' #' + escapeHtml(match.exch1);
+		}
+		if (match.name) {
+			line += ' - ' + escapeHtml(match.name);
+		}
+
+		html += '<li class="list-group-item px-0 py-2">' + line + '</li>';
+	});
+
+	html += '</ul>';
+	$panel.html(html);
+	$card.show();
+}
+
+function lookupCallhistory(call) {
+	$.ajax({
+		url: base_url + 'index.php/callhistory/lookup',
+		type: 'post',
+		data: { callsign: call },
+		success: function (response) {
+			if (!response || response.status !== 'ok') {
+				renderCallhistoryPanel([]);
+				return;
+			}
+			renderCallhistoryPanel(response.matches || []);
+		},
+		error: function () {
+			renderCallhistoryPanel([]);
+		}
+	});
+}
 
 function setContestingTabOrder(exchangetype) {
 	var orderedFieldIds = ['callsign', 'rst_sent'];
@@ -411,9 +473,11 @@ $("#callsign").keyup(function () {
 		// checkIfWorkedBefore();
 		var qTable = $('.qsotable').DataTable();
 		qTable.search(call).draw();
+		lookupCallhistory(call.toUpperCase());
 	}
 	else if (call.length <= 2) {
 		$('.callsign-suggestions').text("");
+		renderCallhistoryPanel([]);
 	}
 });
 
@@ -472,6 +536,7 @@ async function reset_log_fields() {
 	$("#callsign").focus();
 	setRst($("#mode").val());
 	$('#callsign_info').text("");
+	renderCallhistoryPanel([]);
 
 	await refresh_qso_table(sessiondata);
 	var qTable = $('.qsotable').DataTable();

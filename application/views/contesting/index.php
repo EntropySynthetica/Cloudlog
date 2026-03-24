@@ -202,6 +202,13 @@
                 <div class="card-body callsign-suggestions"></div>
             </div>
 
+            <div class="card mt-3" id="callhistory-info-panel" style="display: none;">
+                <div class="card-header"><h5 class="card-title mb-0">Call History Membership</h5></div>
+                <div class="card-body" id="callhistory-results">
+                    <div class="text-muted">Type a callsign to see membership details from your uploaded call history files.</div>
+                </div>
+            </div>
+
             <!-- Past QSO Box -->
             <div class="card log">
                 <div class="card-header"><h5 class="card-title"><?php echo lang('contesting_title_contest_logbook'); ?></h5></div>
