@@ -77,6 +77,13 @@ class Callhistory extends CI_Controller {
         $original_filename = $upload_data['client_name'] !== '' ? $upload_data['client_name'] : $upload_data['orig_name'];
         $organization_label = strtoupper(trim((string)$this->input->post('organization_label', TRUE)));
 
+        if ($organization_label === '') {
+            @unlink($upload_data['full_path']);
+            $this->session->set_flashdata('notice', 'Organization label is required for call history uploads.');
+            redirect('callhistory');
+            return;
+        }
+
         $data = array(
             'user_id' => $user_id,
             'file_label' => trim((string)$this->input->post('file_label', TRUE)),
@@ -188,6 +195,12 @@ class Callhistory extends CI_Controller {
             return;
         }
 
+        if (trim((string)$file->organization_label) === '') {
+            $this->session->set_flashdata('notice', 'Bulk SIG updates require an organization label on the selected call history file.');
+            redirect('callhistory');
+            return;
+        }
+
         $path = FCPATH . 'uploads/callhistory/' . $user_id . '/' . $file->stored_filename;
         if (!is_file($path) || !is_readable($path)) {
             $this->session->set_flashdata('notice', 'Uploaded file is not readable.');
@@ -225,7 +238,7 @@ class Callhistory extends CI_Controller {
                 continue;
             }
 
-            if ($proposed_sig === '' && $proposed_sig_info === '') {
+            if ($proposed_sig === '') {
                 continue;
             }
 
@@ -266,6 +279,14 @@ class Callhistory extends CI_Controller {
 
         $user_id = (int)$this->session->userdata('user_id');
         $raw_changes = $this->input->post('changes', TRUE);
+        $file_id = (int)$this->input->post('file_id', TRUE);
+
+        $file = $this->callhistory_model->get_for_user_by_id($user_id, $file_id);
+        if (!$file || trim((string)$file->organization_label) === '') {
+            $this->session->set_flashdata('notice', 'Bulk SIG updates require an organization label on the selected call history file.');
+            redirect('callhistory');
+            return;
+        }
 
         if (empty($raw_changes) || !is_array($raw_changes)) {
             $this->session->set_flashdata('notice', 'No changes submitted.');

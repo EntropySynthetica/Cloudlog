@@ -1,6 +1,6 @@
 <div class="container">
     <h2>Call History</h2>
-    <p class="text-muted">Upload N1MM call history files (.txt/.csv), assign an optional organization label (e.g., FOC), and set file priority for matching.</p>
+    <p class="text-muted">Upload N1MM call history files (.txt/.csv), assign an organization label (e.g., FOC), and set file priority for matching.</p>
 
     <?php if (!empty($preview)) { ?>
     <div class="card mb-3 border-warning">
@@ -11,6 +11,7 @@
         <div class="card-body">
             <p class="text-muted small mb-2">Only QSOs with <strong>no existing SIG data</strong> are shown. Review the proposed values below, then click <strong>Apply Selected</strong> to write them.</p>
             <form method="post" action="<?php echo site_url('callhistory/scan_apply'); ?>" id="apply-form">
+                <input type="hidden" name="file_id" value="<?php echo (int)$scan_file->id; ?>">
                 <div class="mb-2 d-flex gap-2">
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="select-all-btn"><i class="fas fa-check-double"></i> Select All</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all-btn"><i class="fas fa-times"></i> Deselect All</button>
@@ -111,8 +112,8 @@
                     <input type="text" class="form-control" id="file_label" name="file_label" maxlength="100" placeholder="FOC CW List 2026">
                 </div>
                 <div class="col-md-3">
-                    <label for="organization_label" class="form-label">Organization Label (optional)</label>
-                    <input type="text" class="form-control" id="organization_label" name="organization_label" maxlength="40" placeholder="FOC">
+                    <label for="organization_label" class="form-label">Organization Label</label>
+                    <input type="text" class="form-control" id="organization_label" name="organization_label" maxlength="40" placeholder="FOC" required>
                 </div>
                 <div class="col-md-2">
                     <label for="priority" class="form-label">Priority</label>
