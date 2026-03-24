@@ -636,9 +636,7 @@ class Awards extends CI_Controller
         $filters = $this->pota_filters_from_request();
         $this->load->model('pota');
         $rows = $this->pota->fetch_qsos($filters);
-        $refs = [];
-        foreach ($rows as $r) { $refs[$r->COL_POTA_REF] = true; }
-        $refs = array_keys($refs);
+        $refs = $this->pota->collect_refs_from_rows($rows);
         $data['parks'] = $this->pota->get_parks_meta($refs);
         $this->load->view('awards/pota/components/map', $data);
     }

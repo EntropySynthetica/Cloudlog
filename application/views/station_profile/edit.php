@@ -1102,3 +1102,41 @@
 	</form>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	if (!window.jQuery || typeof window.jQuery.fn.selectize === 'undefined' || typeof base_url === 'undefined') {
+		return;
+	}
+
+	window.jQuery('#stationPOTAInput').selectize({
+		maxItems: null,
+		closeAfterSelect: true,
+		createOnBlur: true,
+		selectOnTab: true,
+		loadThrottle: 250,
+		valueField: 'name',
+		labelField: 'name',
+		searchField: 'name',
+		options: [],
+		create: true,
+		load: function(query, callback) {
+			if (!query || query.length < 3) return callback();
+			window.jQuery.ajax({
+				url: base_url+'index.php/qso/get_pota',
+				type: 'GET',
+				dataType: 'json',
+				data: {
+					query: query,
+				},
+				error: function() {
+					callback();
+				},
+				success: function(res) {
+					callback(res);
+				}
+			});
+		}
+	});
+});
+</script>

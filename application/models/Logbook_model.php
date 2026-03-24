@@ -412,7 +412,7 @@ class Logbook_model extends CI_Model
       $data['COL_MY_IOTA'] = strtoupper(trim($station['station_iota']));
       $data['COL_MY_SOTA_REF'] = strtoupper(trim($station['station_sota']));
       $data['COL_MY_WWFF_REF'] = $station['station_wwff'] ? strtoupper(trim($station['station_wwff'])) : '';
-      $data['COL_MY_POTA_REF'] = $station['station_pota'] == null ? '' : strtoupper(trim($station['station_pota']));
+      $data['COL_MY_POTA_REF'] = $station['station_pota'] == null ? '' : $this->normalize_pota_refs($station['station_pota']);
 
       $data['COL_STATION_CALLSIGN'] = strtoupper(trim($station['station_callsign']));
       $data['COL_MY_DXCC'] = strtoupper(trim($station['station_dxcc']));
@@ -515,7 +515,10 @@ class Logbook_model extends CI_Model
         $this->db->where('COL_WWFF_REF', $searchphrase);
         break;
       case 'POTA':
+        $this->db->group_start();
         $this->db->where('COL_POTA_REF', $searchphrase);
+        $this->db->or_where("CONCAT(',', COL_POTA_REF, ',') LIKE '%," . $this->db->escape_like_str($searchphrase) . ",%'", null, false);
+        $this->db->group_end();
         break;
       case 'DOK':
         $this->db->where('COL_DARC_DOK', $searchphrase);
@@ -1312,7 +1315,7 @@ class Logbook_model extends CI_Model
     $iotaRef = $station_profile->station_iota;
     $sotaRef = $station_profile->station_sota;
     $wwffRef = $station_profile->station_wwff;
-    $potaRef = $station_profile->station_pota;
+    $potaRef = $this->normalize_pota_refs($station_profile->station_pota);
 
     $mode = $this->get_main_mode_if_submode($this->input->post('mode'));
     if ($mode == null) {
@@ -4509,7 +4512,7 @@ class Logbook_model extends CI_Model
           $data['COL_MY_IOTA'] = strtoupper(trim($row['station_iota']));
           $data['COL_MY_SOTA_REF'] = strtoupper(trim($row['station_sota']));
           $data['COL_MY_WWFF_REF'] = strtoupper(trim($row['station_wwff']));
-          $data['COL_MY_POTA_REF'] = $row['station_pota'] == null ? '' : strtoupper(trim($row['station_pota']));
+          $data['COL_MY_POTA_REF'] = $row['station_pota'] == null ? '' : $this->normalize_pota_refs($row['station_pota']);
 
           $data['COL_STATION_CALLSIGN'] = strtoupper(trim($row['station_callsign']));
           $data['COL_MY_DXCC'] = strtoupper(trim($row['station_dxcc']));

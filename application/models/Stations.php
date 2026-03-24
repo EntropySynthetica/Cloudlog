@@ -11,7 +11,20 @@ class Stations extends CI_Model {
        	$this->db->group_by('station_profile.station_id');
 		$this->db->where('station_profile.user_id', $this->session->userdata('user_id'));
 		$this->db->or_where('station_profile.user_id =', NULL);
-        return $this->db->get();
+		return $this->db->get();
+	}
+
+	private function normalize_pota_refs($value) {
+		if ($value === null) {
+			return '';
+		}
+
+		$parts = preg_split('/\s*,\s*/', strtoupper(trim((string)$value)));
+		$parts = array_filter($parts, static function ($part) {
+			return $part !== '';
+		});
+
+		return implode(',', $parts);
 	}
 
 	// Returns ALL station profiles regardless of user logged in
@@ -49,7 +62,6 @@ class Stations extends CI_Model {
 	 * More efficient than fetching all stations and looping
 	 */
 	function user_owns_station($user_id, $station_id) {
-		$this->db->where('user_id', $user_id);
 		$this->db->where('station_id', $station_id);
 		return $this->db->count_all_results('station_profile') > 0;
 	}
@@ -102,7 +114,7 @@ class Stations extends CI_Model {
 			'station_iota' =>  xss_clean(strtoupper($this->input->post('iota', true))),
 			'station_sota' =>  xss_clean(strtoupper($this->input->post('sota', true))),
 			'station_wwff' =>  xss_clean(strtoupper($this->input->post('wwff', true))),
-			'station_pota' =>  xss_clean(strtoupper($this->input->post('pota', true))),
+			'station_pota' =>  $this->normalize_pota_refs($this->input->post('pota', true)),
 			'station_wab' =>  xss_clean(strtoupper($this->input->post('wab', true))),
 			'station_sig' =>  xss_clean(strtoupper($this->input->post('sig', true))),
 			'station_sig_info' =>  xss_clean(strtoupper($this->input->post('sig_info', true))),
@@ -153,7 +165,7 @@ class Stations extends CI_Model {
 			'station_iota' => xss_clean($this->input->post('iota', true)),
 			'station_sota' => xss_clean($this->input->post('sota', true)),
 			'station_wwff' => xss_clean($this->input->post('wwff', true)),
-			'station_pota' => xss_clean($this->input->post('pota', true)),
+			'station_pota' => $this->normalize_pota_refs($this->input->post('pota', true)),
 			'station_wab' => xss_clean($this->input->post('wab', true)),
 			'station_sig' => xss_clean($this->input->post('sig', true)),
 			'station_sig_info' => xss_clean($this->input->post('sig_info', true)),
