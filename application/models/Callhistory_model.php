@@ -159,7 +159,7 @@ class Callhistory_model extends CI_Model {
                 'COL_SIG_INFO' => $change['new_sig_info'],
             ));
 
-            if ($this->db->affected_rows() >= 0) {
+            if ($this->db->affected_rows() > 0) {
                 $applied++;
             }
         }

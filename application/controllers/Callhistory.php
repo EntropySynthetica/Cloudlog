@@ -332,9 +332,10 @@ class Callhistory extends CI_Controller {
             return;
         }
 
+        $selected_count = count($safe_changes);
         $applied = $this->callhistory_model->apply_sig_backfill($safe_changes);
 
-        $this->session->set_flashdata('notice', $applied . ' QSO(s) updated with SIG data.');
+        $this->session->set_flashdata('notice', $selected_count . ' QSO(s) selected, ' . $applied . ' QSO(s) updated with SIG data.');
         redirect('callhistory');
     }
 
