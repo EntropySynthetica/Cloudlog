@@ -5458,12 +5458,24 @@ class Logbook_model extends CI_Model
     $CI->load->model('logbooks_model');
     $logbooks_locations_array = $CI->logbooks_model->list_logbook_relationships($this->session->userdata('active_station_logbook'));
 
+    $normalizedCounty = strtolower(trim((string)$county));
+    $normalizedState = strtoupper(trim((string)$state));
+    $normalizedStateExpression = "UPPER(TRIM(CASE WHEN COALESCE(COL_STATE, '') <> '' THEN COL_STATE WHEN COL_CNTY REGEXP '^[A-Za-z]{2},' THEN SUBSTRING_INDEX(COL_CNTY, ',', 1) ELSE '' END))";
+    if (preg_match('/^[A-Za-z]{2},\s*/', $normalizedCounty)) {
+      $normalizedCounty = preg_replace('/^[A-Za-z]{2},\s*/', '', $normalizedCounty);
+    }
+
+    $this->db->select($this->config->item('table_name') . '.*');
+    $this->db->select('station_profile.*');
+    $this->db->select('lotw.callsign, lotw.lastupload');
+    $this->db->select('dxcc_entities.name as name, dxcc_entities.end as end');
     $this->db->join('station_profile', 'station_profile.station_id = ' . $this->config->item('table_name') . '.station_id');
+    $this->db->join('dxcc_entities', 'dxcc_entities.adif = ' . $this->config->item('table_name') . '.COL_DXCC', 'left outer');
     $this->db->join('lotw_users lotw', 'lotw.callsign = ' . $this->config->item('table_name') . '.col_call', 'left');
     $this->db->where_in($this->config->item('table_name') . '.station_id', $logbooks_locations_array);
-    $this->db->where('COL_STATE', $state);
-    $this->db->where('COL_CNTY', $county);
-    $this->db->where('COL_PROP_MODE !=', 'SAT');
+    $this->db->where($normalizedStateExpression . ' = ' . $this->db->escape($normalizedState), null, false);
+    $this->db->where("LOWER(TRIM(SUBSTRING_INDEX(COL_CNTY, ',', -1))) = " . $this->db->escape($normalizedCounty), null, false);
+    $this->db->where('COL_BAND !=', 'SAT');
 
     return $this->db->get($this->config->item('table_name'));
   }

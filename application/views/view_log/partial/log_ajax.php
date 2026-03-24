@@ -23,11 +23,13 @@ function echo_table_header_col($ctx, $name) {
 
 function echo_table_col($row, $name) {
 	$ci =& get_instance();
+    $dxccName = property_exists($row, 'name') ? $row->name : null;
+    $dxccEnd = property_exists($row, 'end') ? $row->end : null;
 	switch($name) {
 		case 'Mode':    echo '<td>'; echo $row->COL_SUBMODE==null?$row->COL_MODE:$row->COL_SUBMODE . '</td>'; break;
         case 'RSTS':    echo '<td>' . $row->COL_RST_SENT; if ($row->COL_STX) { echo ' <span data-bs-toggle="tooltip" title="'.($row->COL_CONTEST_ID!=""?$row->COL_CONTEST_ID:"n/a").'" class="badge text-bg-light">'; printf("%03d", $row->COL_STX); echo '</span>';} if ($row->COL_STX_STRING) { echo ' <span data-bs-toggle="tooltip" title="'.($row->COL_CONTEST_ID!=""?$row->COL_CONTEST_ID:"n/a").'" class="badge text-bg-light">' . $row->COL_STX_STRING . '</span>';} echo '</td>'; break;
         case 'RSTR':    echo '<td>' . $row->COL_RST_RCVD; if ($row->COL_SRX) { echo ' <span data-bs-toggle="tooltip" title="'.($row->COL_CONTEST_ID!=""?$row->COL_CONTEST_ID:"n/a").'" class="badge text-bg-light">'; printf("%03d", $row->COL_SRX); echo '</span>';} if ($row->COL_SRX_STRING) { echo ' <span data-bs-toggle="tooltip" title="'.($row->COL_CONTEST_ID!=""?$row->COL_CONTEST_ID:"n/a").'" class="badge text-bg-light">' . $row->COL_SRX_STRING . '</span>';} echo '</td>'; break;
-		case 'Country': echo '<td>' . ucwords(strtolower(($row->name==null?"- NONE -":$row->name))); if ($row->end != null) echo ' <span class="badge text-bg-danger">'.$ci->lang->line('gen_hamradio_deleted_dxcc').'</span>' . '</td>'; break;
+        case 'Country': echo '<td>' . ucwords(strtolower(($dxccName==null?"- NONE -":$dxccName))); if ($dxccEnd != null) echo ' <span class="badge text-bg-danger">'.$ci->lang->line('gen_hamradio_deleted_dxcc').'</span>' . '</td>'; break;
 		case 'IOTA':    echo '<td>' . ($row->COL_IOTA) . '</td>'; break;
 		case 'SOTA':    echo '<td>' . ($row->COL_SOTA_REF) . '</td>'; break;
 		case 'WWFF':    echo '<td>' . ($row->COL_WWFF_REF) . '</td>'; break;
@@ -43,7 +45,7 @@ function echo_table_col($row, $name) {
 		case 'Flag':
 			$ci->load->library('DxccFlag');	
 			$flag = strtolower($ci->dxccflag->getISO($row->COL_DXCC));
-			echo '<td><span data-bs-toggle="tooltip" title="' . ucwords(strtolower(($row->name==null?"- NONE -":$row->name))) . '"><span class="fi fi-' . $flag .'"></span></span></td>'; 
+            echo '<td><span data-bs-toggle="tooltip" title="' . ucwords(strtolower(($dxccName==null?"- NONE -":$dxccName))) . '"><span class="fi fi-' . $flag .'"></span></span></td>'; 
 			break;
 	}
 }

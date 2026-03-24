@@ -39,27 +39,34 @@ class Counties extends CI_Model
 
 		$bandslots_list = "'".implode("','",$bandslots)."'";
 
-        $sql = "select count(distinct COL_CNTY) countycountworked, coalesce(x.countycountconfirmed, 0) countycountconfirmed, thcv.COL_STATE
+        // Normalize county/state values so imported variants group consistently.
+        $normalizedCountyExpression = "LOWER(TRIM(SUBSTRING_INDEX(COL_CNTY, ',', -1)))";
+        $normalizedStateExpression = "UPPER(TRIM(CASE WHEN COALESCE(COL_STATE, '') <> '' THEN COL_STATE WHEN COL_CNTY REGEXP '^[A-Za-z]{2},' THEN SUBSTRING_INDEX(COL_CNTY, ',', 1) ELSE '' END))";
+        $normalizedStateExpressionOuter = "UPPER(TRIM(CASE WHEN COALESCE(thcv.COL_STATE, '') <> '' THEN thcv.COL_STATE WHEN thcv.COL_CNTY REGEXP '^[A-Za-z]{2},' THEN SUBSTRING_INDEX(thcv.COL_CNTY, ',', 1) ELSE '' END))";
+
+        $sql = "select count(distinct " . $normalizedCountyExpression . ") countycountworked, coalesce(x.countycountconfirmed, 0) countycountconfirmed, " . $normalizedStateExpressionOuter . " as COL_STATE
                 from " . $this->config->item('table_name') . " thcv
                  left outer join (
-                        select count(distinct COL_CNTY) countycountconfirmed, COL_STATE
+              select count(distinct " . $normalizedCountyExpression . ") countycountconfirmed, " . $normalizedStateExpression . " as COL_STATE
                         from " . $this->config->item('table_name') .
             " where station_id in (" . $location_list . ")" .
             " and col_band in (" . $bandslots_list . ")" .
             " and COL_DXCC in ('291', '6', '110')
                     and coalesce(COL_CNTY, '') <> ''
+                    and " . $normalizedStateExpression . " <> ''
                     and COL_BAND != 'SAT'
                     and (col_qsl_rcvd='Y' or col_eqsl_qsl_rcvd='Y')
-                    group by COL_STATE
+                    group by " . $normalizedStateExpression . "
                     order by COL_STATE
-                ) x on thcv.COL_STATE = x.COL_STATE
+                ) x on " . $normalizedStateExpressionOuter . " = x.COL_STATE
                  where station_id in (" . $location_list . ")" .
                  " and col_band in (" . $bandslots_list . ")" .
             " and COL_DXCC in ('291', '6', '110')
                 and coalesce(COL_CNTY, '') <> ''
+                and " . $normalizedStateExpressionOuter . " <> ''
                 and COL_BAND != 'SAT'
-                group by thcv.COL_STATE, countycountconfirmed
-                order by thcv.COL_STATE";
+                group by " . $normalizedStateExpressionOuter . ", countycountconfirmed
+                order by " . $normalizedStateExpressionOuter;
 
         $query = $this->db->query($sql);
         return $query->result_array();
@@ -99,23 +106,29 @@ class Counties extends CI_Model
 
 		$bandslots_list = "'".implode("','",$bandslots)."'";
 
-        $sql = "select distinct COL_CNTY, COL_STATE
+        $normalizedCountySelect = "TRIM(SUBSTRING_INDEX(COL_CNTY, ',', -1))";
+        $normalizedCountyOrder = "LOWER(TRIM(SUBSTRING_INDEX(COL_CNTY, ',', -1)))";
+        $normalizedStateExpression = "UPPER(TRIM(CASE WHEN COALESCE(COL_STATE, '') <> '' THEN COL_STATE WHEN COL_CNTY REGEXP '^[A-Za-z]{2},' THEN SUBSTRING_INDEX(COL_CNTY, ',', 1) ELSE '' END))";
+
+        $sql = "select MIN(" . $normalizedCountySelect . ") as COL_CNTY, " . $normalizedStateExpression . " as COL_STATE
                 from " . $this->config->item('table_name') . " thcv
                  where station_id in (" . $location_list . ")" .
                  " and col_band in (" . $bandslots_list . ")" .
                 " and COL_DXCC in ('291', '6', '110')
                 and coalesce(COL_CNTY, '') <> ''
+                and " . $normalizedStateExpression . " <> ''
                 and COL_BAND != 'SAT'";
 
         if ($state != 'All') {
-            $sql .= " and COL_STATE = '" . $state . "'";
+            $sql .= " and " . $normalizedStateExpression . " = " . $this->db->escape(strtoupper($state));
         }
 
         if ($confirmationtype != 'none') {
             $sql .= " and (col_qsl_rcvd='Y' or col_eqsl_qsl_rcvd='Y')";
         }
 
-        $sql .= " order by thcv.COL_STATE";
+        $sql .= " group by " . $normalizedCountyOrder . ", " . $normalizedStateExpression;
+        $sql .= " order by " . $normalizedStateExpression . ", " . $normalizedCountySelect;
 
         $query = $this->db->query($sql);
         return $query->result_array();
