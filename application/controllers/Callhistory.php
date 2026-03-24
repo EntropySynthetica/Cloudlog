@@ -187,6 +187,12 @@ class Callhistory extends CI_Controller {
         $file_id = (int)$this->input->post('file_id', TRUE);
         $logbook_id = $this->input->post('logbook_id', TRUE);
         $logbook_id = ($logbook_id !== '' && $logbook_id !== FALSE) ? (int)$logbook_id : NULL;
+        $start_date = trim((string)$this->input->post('start_date', TRUE));
+        if ($start_date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_date)) {
+            $this->session->set_flashdata('notice', 'Start date must be in YYYY-MM-DD format.');
+            redirect('callhistory');
+            return;
+        }
 
         $file = $this->callhistory_model->get_for_user_by_id($user_id, $file_id);
         if (!$file) {
@@ -217,7 +223,7 @@ class Callhistory extends CI_Controller {
         }
 
         // Look up matching QSOs for all those callsigns
-        $qsos = $this->callhistory_model->get_qsos_for_callsigns($user_id, array_keys($all_callsigns), $logbook_id);
+        $qsos = $this->callhistory_model->get_qsos_for_callsigns($user_id, array_keys($all_callsigns), $logbook_id, $start_date !== '' ? $start_date : NULL);
 
         $preview = array();
         foreach ($qsos as $qso) {
@@ -264,6 +270,7 @@ class Callhistory extends CI_Controller {
         $data['scan_file'] = $file;
         $data['logbooks'] = $this->logbooks_model->show_all()->result();
         $data['selected_logbook_id'] = $logbook_id;
+        $data['selected_start_date'] = $start_date;
 
         $this->load->view('interface_assets/header', $data);
         $this->load->view('callhistory/index', $data);

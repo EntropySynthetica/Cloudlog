@@ -57,7 +57,7 @@
         </div>
     </div>
     <?php } elseif (isset($scan_file)) { ?>
-    <div class="alert alert-info"><i class="fas fa-info-circle"></i> No blank-SIG matches found for <strong><?php echo htmlspecialchars($scan_file->original_filename); ?></strong> in the selected logbook scope.</div>
+    <div class="alert alert-info"><i class="fas fa-info-circle"></i> No blank-SIG matches found for <strong><?php echo htmlspecialchars($scan_file->original_filename); ?></strong> in the selected station location scope<?php if (!empty($selected_start_date)) { echo ' from <strong>' . htmlspecialchars($selected_start_date) . '</strong> onward'; } ?>.</div>
     <?php } ?>
 
     <?php if (!empty($files)) { ?>
@@ -89,7 +89,11 @@
                         <?php } } ?>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
+                    <label for="scan_start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="scan_start_date" name="start_date" value="<?php echo isset($selected_start_date) ? htmlspecialchars($selected_start_date) : ''; ?>">
+                </div>
+                <div class="col-md-2">
                     <button type="submit" class="btn btn-warning"><i class="fas fa-search"></i> Preview Changes</button>
                 </div>
             </form>

@@ -102,7 +102,7 @@ class Callhistory_model extends CI_Model {
         return $verified_ids;
     }
 
-    public function get_qsos_for_callsigns($user_id, $callsigns, $logbook_id = NULL)
+    public function get_qsos_for_callsigns($user_id, $callsigns, $logbook_id = NULL, $start_date = NULL)
     {
         $callsigns = array_values(array_unique(array_filter(array_map('strval', (array)$callsigns))));
         if (empty($callsigns)) {
@@ -129,6 +129,9 @@ class Callhistory_model extends CI_Model {
             $this->db->where('station_profile.user_id', (int)$user_id);
             $this->db->where_in($table . '.station_id', $station_ids);
             $this->db->where('UPPER(REPLACE(' . $table . '.COL_CALL, "Ø", "0")) IN (' . implode(',', $escaped_callsigns) . ')', NULL, FALSE);
+            if (!empty($start_date)) {
+                $this->db->where($table . '.COL_TIME_ON >=', $start_date . ' 00:00:00');
+            }
             $this->db->order_by($table . '.COL_TIME_ON', 'DESC');
 
             $query = $this->db->get();
