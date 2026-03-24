@@ -208,7 +208,9 @@
 <script>
 $(document).ready(function () {
     var table = $('#callhistory-preview-table').DataTable({
-        "pageLength": 25,
+        "pageLength": 100,
+        "lengthMenu": [[25, 50, 100, 250, -1], [25, 50, 100, 250, "All"]],
+        "pagingType": "full_numbers",
         "order": [[2, "asc"]],
         "columnDefs": [
             { "orderable": false, "targets": 0 },
