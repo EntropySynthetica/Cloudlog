@@ -231,6 +231,8 @@ function qso_edit(id) {
                     $('#sota_ref_edit').selectize({
                         maxItems: 1,
                         closeAfterSelect: true,
+                        createOnBlur: true,
+                        selectOnTab: true,
                         loadThrottle: 250,
                         valueField: 'name',
                         labelField: 'name',
@@ -259,6 +261,8 @@ function qso_edit(id) {
                     $('#wwff_ref_edit').selectize({
                         maxItems: 1,
                         closeAfterSelect: true,
+                        createOnBlur: true,
+                        selectOnTab: true,
                         loadThrottle: 250,
                         valueField: 'name',
                         labelField: 'name',
@@ -287,6 +291,8 @@ function qso_edit(id) {
                     $('#pota_ref_edit').selectize({
                         maxItems: 1,
                         closeAfterSelect: true,
+                        createOnBlur: true,
+                        selectOnTab: true,
                         loadThrottle: 250,
                         valueField: 'name',
                         labelField: 'name',

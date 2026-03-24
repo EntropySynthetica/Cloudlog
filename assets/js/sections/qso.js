@@ -376,6 +376,8 @@ var favs={};
 	$('#sota_ref').selectize({
 		maxItems: 1,
 		closeAfterSelect: true,
+		createOnBlur: true,
+		selectOnTab: true,
 		loadThrottle: 250,
 		valueField: 'name',
 		labelField: 'name',
@@ -409,6 +411,8 @@ var favs={};
 	$('#wwff_ref').selectize({
 		maxItems: 1,
 		closeAfterSelect: true,
+		createOnBlur: true,
+		selectOnTab: true,
 		loadThrottle: 250,
 		valueField: 'name',
 		labelField: 'name',
@@ -442,6 +446,8 @@ var favs={};
 	$('#pota_ref').selectize({
 		maxItems: 1,
 		closeAfterSelect: true,
+		createOnBlur: true,
+		selectOnTab: true,
 		loadThrottle: 250,
 		valueField: 'name',
 		labelField: 'name',
