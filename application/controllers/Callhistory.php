@@ -217,14 +217,12 @@ class Callhistory extends CI_Controller {
     {
         $matches = array();
         $header_map = null;
-        $line_number = 0;
 
         if (($handle = fopen($file_path, 'r')) === FALSE) {
             return $matches;
         }
 
         while (($row = fgetcsv($handle, 0, ',')) !== FALSE) {
-            $line_number++;
             if (empty($row)) {
                 continue;
             }
@@ -234,7 +232,11 @@ class Callhistory extends CI_Controller {
                 continue;
             }
 
-            if ($line_number === 1 && $this->looks_like_header($row)) {
+            if ($this->is_comment_row($row)) {
+                continue;
+            }
+
+            if ($this->looks_like_header($row)) {
                 $header_map = $this->build_header_map($row);
                 continue;
             }
@@ -246,7 +248,7 @@ class Callhistory extends CI_Controller {
                 continue;
             }
 
-            $name = $this->extract_by_map_or_index($row, $header_map, array('name', 'operator', 'opname'), 1);
+            $name = $this->extract_name($row, $header_map);
             $exch1 = $this->extract_by_map_or_index($row, $header_map, array('exch1', 'exchange1', 'exchange', 'member', 'membership'), 8);
 
             if ($exch1 === '' && is_null($header_map)) {
@@ -266,6 +268,20 @@ class Callhistory extends CI_Controller {
 
         fclose($handle);
         return $matches;
+    }
+
+    private function is_comment_row($row)
+    {
+        foreach ($row as $column) {
+            $value = trim((string)$column);
+            if ($value === '') {
+                continue;
+            }
+
+            return strpos(ltrim($value, "\xEF\xBB\xBF"), '#') === 0;
+        }
+
+        return FALSE;
     }
 
     private function looks_like_header($row)
@@ -305,8 +321,40 @@ class Callhistory extends CI_Controller {
         return isset($row[$default_index]) ? trim((string)$row[$default_index]) : '';
     }
 
+    private function extract_name($row, $header_map)
+    {
+        $name = $this->extract_by_map_or_index($row, $header_map, array('name', 'operator', 'opname'), 1);
+        if ($name !== '' || is_array($header_map)) {
+            return $name;
+        }
+
+        if (isset($row[1], $row[2])) {
+            $second_column = trim((string)$row[1]);
+            $third_column = trim((string)$row[2]);
+
+            if ($this->looks_like_exchange_value($second_column) && $this->looks_like_name_value($third_column)) {
+                return $third_column;
+            }
+        }
+
+        return $name;
+    }
+
     private function guess_exch1_without_header($row)
     {
+        if (isset($row[1], $row[2])) {
+            $second_column = trim((string)$row[1]);
+            $third_column = trim((string)$row[2]);
+
+            if ($this->looks_like_exchange_value($second_column) && $this->looks_like_name_value($third_column)) {
+                return $second_column;
+            }
+
+            if ($this->looks_like_name_value($second_column) && $this->looks_like_exchange_value($third_column)) {
+                return $third_column;
+            }
+        }
+
         $indexes = array(8, 7, 6, 5, 4, 3, 2);
         foreach ($indexes as $index) {
             if (isset($row[$index]) && trim((string)$row[$index]) !== '') {
@@ -315,6 +363,30 @@ class Callhistory extends CI_Controller {
         }
 
         return '';
+    }
+
+    private function looks_like_name_value($value)
+    {
+        $value = trim((string)$value);
+        if ($value === '' || preg_match('/\d/', $value)) {
+            return FALSE;
+        }
+
+        if (preg_match('/[a-z]/', $value)) {
+            return TRUE;
+        }
+
+        return strlen($value) > 4;
+    }
+
+    private function looks_like_exchange_value($value)
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return FALSE;
+        }
+
+        return !$this->looks_like_name_value($value);
     }
 
     private function normalize_callsign($callsign)
