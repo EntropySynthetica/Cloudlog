@@ -57,4 +57,115 @@ class Callhistory_model extends CI_Model {
         $this->db->where('id', (int)$id);
         return $this->db->delete('callhistory_files');
     }
+
+    public function get_station_ids_for_logbook($user_id, $logbook_id = NULL)
+    {
+        if ($logbook_id === NULL || $logbook_id === '' || $logbook_id === 0 || $logbook_id === '0') {
+            $this->db->select('station_id');
+            $this->db->from('station_profile');
+            $this->db->where('user_id', (int)$user_id);
+
+            $query = $this->db->get();
+            $station_ids = array();
+            foreach ($query->result() as $row) {
+                $station_ids[] = (int)$row->station_id;
+            }
+
+            return $station_ids;
+        }
+
+        $this->db->select('station_location_id');
+        $this->db->from('station_logbooks_relationship');
+        $this->db->where('station_logbook_id', (int)$logbook_id);
+        $query = $this->db->get();
+
+        $candidate_ids = array();
+        foreach ($query->result() as $row) {
+            $candidate_ids[] = (int)$row->station_location_id;
+        }
+
+        if (empty($candidate_ids)) {
+            return array();
+        }
+
+        $this->db->select('station_id');
+        $this->db->from('station_profile');
+        $this->db->where('user_id', (int)$user_id);
+        $this->db->where_in('station_id', $candidate_ids);
+        $verified_query = $this->db->get();
+
+        $verified_ids = array();
+        foreach ($verified_query->result() as $row) {
+            $verified_ids[] = (int)$row->station_id;
+        }
+
+        return $verified_ids;
+    }
+
+    public function get_qsos_for_callsigns($user_id, $callsigns, $logbook_id = NULL)
+    {
+        $callsigns = array_values(array_unique(array_filter(array_map('strval', (array)$callsigns))));
+        if (empty($callsigns)) {
+            return array();
+        }
+
+        $station_ids = $this->get_station_ids_for_logbook($user_id, $logbook_id);
+        if (empty($station_ids)) {
+            return array();
+        }
+
+        $table = $this->config->item('table_name');
+        $results = array();
+
+        foreach (array_chunk($callsigns, 500) as $callsign_chunk) {
+            $escaped_callsigns = array();
+            foreach ($callsign_chunk as $callsign) {
+                $escaped_callsigns[] = $this->db->escape(strtoupper($callsign));
+            }
+
+            $this->db->select($table . '.COL_PRIMARY_KEY, ' . $table . '.COL_CALL, ' . $table . '.COL_TIME_ON, ' . $table . '.COL_BAND, ' . $table . '.COL_MODE, ' . $table . '.COL_SUBMODE, ' . $table . '.COL_SIG, ' . $table . '.COL_SIG_INFO, ' . $table . '.station_id, station_profile.station_profile_name, station_profile.station_callsign');
+            $this->db->from($table);
+            $this->db->join('station_profile', 'station_profile.station_id = ' . $table . '.station_id');
+            $this->db->where('station_profile.user_id', (int)$user_id);
+            $this->db->where_in($table . '.station_id', $station_ids);
+            $this->db->where('UPPER(REPLACE(' . $table . '.COL_CALL, "Ø", "0")) IN (' . implode(',', $escaped_callsigns) . ')', NULL, FALSE);
+            $this->db->order_by($table . '.COL_TIME_ON', 'DESC');
+
+            $query = $this->db->get();
+            $results = array_merge($results, $query->result());
+        }
+
+        return $results;
+    }
+
+    public function apply_sig_backfill($changes)
+    {
+        if (empty($changes)) {
+            return 0;
+        }
+
+        $table = $this->config->item('table_name');
+        $applied = 0;
+
+        $this->db->trans_start();
+        foreach ($changes as $change) {
+            $this->db->where('COL_PRIMARY_KEY', (int)$change['qso_id']);
+            $this->db->where('station_id', (int)$change['station_id']);
+            $this->db->update($table, array(
+                'COL_SIG' => $change['new_sig'],
+                'COL_SIG_INFO' => $change['new_sig_info'],
+            ));
+
+            if ($this->db->affected_rows() >= 0) {
+                $applied++;
+            }
+        }
+        $this->db->trans_complete();
+
+        if (!$this->db->trans_status()) {
+            return 0;
+        }
+
+        return $applied;
+    }
 }

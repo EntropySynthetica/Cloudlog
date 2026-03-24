@@ -21,8 +21,10 @@ class Callhistory extends CI_Controller {
     {
         $user_id = (int)$this->session->userdata('user_id');
 
+        $this->load->model('logbooks_model');
         $data['page_title'] = 'Call History';
         $data['files'] = $this->callhistory_model->get_all_for_user($user_id);
+        $data['logbooks'] = $this->logbooks_model->show_all()->result();
 
         $this->load->view('interface_assets/header', $data);
         $this->load->view('callhistory/index', $data);
@@ -167,6 +169,147 @@ class Callhistory extends CI_Controller {
         redirect('callhistory');
     }
 
+    public function scan_preview()
+    {
+        if (strtolower($this->input->method()) !== 'post') {
+            redirect('callhistory');
+            return;
+        }
+
+        $user_id = (int)$this->session->userdata('user_id');
+        $file_id = (int)$this->input->post('file_id', TRUE);
+        $logbook_id = $this->input->post('logbook_id', TRUE);
+        $logbook_id = ($logbook_id !== '' && $logbook_id !== FALSE) ? (int)$logbook_id : NULL;
+
+        $file = $this->callhistory_model->get_for_user_by_id($user_id, $file_id);
+        if (!$file) {
+            $this->session->set_flashdata('notice', 'Call history file not found.');
+            redirect('callhistory');
+            return;
+        }
+
+        $path = FCPATH . 'uploads/callhistory/' . $user_id . '/' . $file->stored_filename;
+        if (!is_file($path) || !is_readable($path)) {
+            $this->session->set_flashdata('notice', 'Uploaded file is not readable.');
+            redirect('callhistory');
+            return;
+        }
+
+        // Parse every callsign in the file
+        $all_callsigns = $this->get_all_callsigns_in_file($path);
+        if (empty($all_callsigns)) {
+            $this->session->set_flashdata('notice', 'No callsigns found in the selected file.');
+            redirect('callhistory');
+            return;
+        }
+
+        // Look up matching QSOs for all those callsigns
+        $qsos = $this->callhistory_model->get_qsos_for_callsigns($user_id, array_keys($all_callsigns), $logbook_id);
+
+        $preview = array();
+        foreach ($qsos as $qso) {
+            $normalized_call = $this->normalize_callsign($qso->COL_CALL);
+            if (!isset($all_callsigns[$normalized_call])) {
+                continue;
+            }
+
+            $call_data = $all_callsigns[$normalized_call];
+            $proposed_sig = $file->organization_label;
+            $proposed_sig_info = $call_data['exch1'];
+
+            $current_sig = trim((string)($qso->COL_SIG ?? ''));
+            $current_sig_info = trim((string)($qso->COL_SIG_INFO ?? ''));
+
+            // Only propose changes where both SIG fields are currently blank
+            if ($current_sig !== '' || $current_sig_info !== '') {
+                continue;
+            }
+
+            if ($proposed_sig === '' && $proposed_sig_info === '') {
+                continue;
+            }
+
+            $preview[] = array(
+                'qso_id' => (int)$qso->COL_PRIMARY_KEY,
+                'station_id' => (int)$qso->station_id,
+                'callsign' => $qso->COL_CALL,
+                'time_on' => $qso->COL_TIME_ON,
+                'band' => $qso->COL_BAND,
+                'mode' => $qso->COL_SUBMODE !== '' ? $qso->COL_SUBMODE : $qso->COL_MODE,
+                'station_location' => $qso->station_profile_name . ' (' . $qso->station_callsign . ')',
+                'current_sig' => $current_sig,
+                'current_sig_info' => $current_sig_info,
+                'new_sig' => $proposed_sig,
+                'new_sig_info' => $proposed_sig_info,
+            );
+        }
+
+        $this->load->model('logbooks_model');
+        $data['page_title'] = 'Call History - Scan Preview';
+        $data['files'] = $this->callhistory_model->get_all_for_user($user_id);
+        $data['preview'] = $preview;
+        $data['scan_file'] = $file;
+        $data['logbooks'] = $this->logbooks_model->show_all()->result();
+        $data['selected_logbook_id'] = $logbook_id;
+
+        $this->load->view('interface_assets/header', $data);
+        $this->load->view('callhistory/index', $data);
+        $this->load->view('interface_assets/footer');
+    }
+
+    public function scan_apply()
+    {
+        if (strtolower($this->input->method()) !== 'post') {
+            redirect('callhistory');
+            return;
+        }
+
+        $user_id = (int)$this->session->userdata('user_id');
+        $raw_changes = $this->input->post('changes', TRUE);
+
+        if (empty($raw_changes) || !is_array($raw_changes)) {
+            $this->session->set_flashdata('notice', 'No changes submitted.');
+            redirect('callhistory');
+            return;
+        }
+
+        // Validate that every station_id belongs to this user before applying
+        $station_ids = $this->callhistory_model->get_station_ids_for_logbook($user_id);
+        $station_ids_set = array_flip($station_ids);
+
+        $safe_changes = array();
+        foreach ($raw_changes as $change) {
+            $qso_id = isset($change['qso_id']) ? (int)$change['qso_id'] : 0;
+            $station_id = isset($change['station_id']) ? (int)$change['station_id'] : 0;
+
+            if ($qso_id <= 0 || $station_id <= 0) {
+                continue;
+            }
+
+            if (!isset($station_ids_set[$station_id])) {
+                continue;
+            }
+
+            $safe_changes[] = array(
+                'qso_id' => $qso_id,
+                'station_id' => $station_id,
+                'new_sig' => $this->security->xss_clean((string)($change['new_sig'] ?? '')),
+                'new_sig_info' => $this->security->xss_clean((string)($change['new_sig_info'] ?? '')),
+            );
+        }
+
+        if (empty($safe_changes)) {
+            $this->session->set_flashdata('notice', 'No valid changes to apply.');
+            redirect('callhistory');
+            return;
+        }
+
+        $applied = $this->callhistory_model->apply_sig_backfill($safe_changes);
+
+        $this->session->set_flashdata('notice', $applied . ' QSO(s) updated with SIG data.');
+        redirect('callhistory');
+    }
+
     public function lookup()
     {
         if (strtolower($this->input->method()) !== 'post') {
@@ -211,6 +354,75 @@ class Callhistory extends CI_Controller {
 
         header('Content-Type: application/json');
         echo json_encode($response);
+    }
+
+    private function get_all_callsigns_in_file($file_path)
+    {
+        $callsigns = array();
+        $header_map = null;
+
+        if (($handle = fopen($file_path, 'r')) === FALSE) {
+            return $callsigns;
+        }
+
+        while (($row = fgetcsv($handle, 0, ',')) !== FALSE) {
+            if (empty($row)) {
+                continue;
+            }
+
+            $row = array_map('trim', $row);
+            if (count($row) === 1 && $row[0] === '') {
+                continue;
+            }
+
+            if ($this->is_comment_row($row)) {
+                continue;
+            }
+
+            if ($this->looks_like_header($row)) {
+                $header_map = $this->build_header_map($row);
+                continue;
+            }
+
+            $row_callsign = $this->extract_by_map_or_index($row, $header_map, array('call', 'callsign', 'callsigns'), 0);
+            $row_callsign = $this->normalize_callsign($row_callsign);
+
+            if ($row_callsign === '') {
+                continue;
+            }
+
+            // Strip portable/alternative suffixes to get base call for matching
+            $base_callsign = $row_callsign;
+            if (strpos($base_callsign, '/') !== FALSE) {
+                $parts = explode('/', $base_callsign);
+                // Use the longest segment as the base callsign
+                usort($parts, function($a, $b) { return strlen($b) - strlen($a); });
+                $base_callsign = $parts[0];
+            }
+
+            $name = $this->extract_name($row, $header_map);
+            $exch1 = $this->extract_by_map_or_index($row, $header_map, array('exch1', 'exchange1', 'exchange', 'member', 'membership'), 8);
+
+            if ($exch1 === '' && is_null($header_map)) {
+                $exch1 = $this->guess_exch1_without_header($row);
+            }
+
+            $callsigns[$base_callsign] = array(
+                'name' => $name,
+                'exch1' => $exch1,
+            );
+
+            // Also index by original callsign if it differs (e.g. contains /)
+            if ($row_callsign !== $base_callsign) {
+                $callsigns[$row_callsign] = array(
+                    'name' => $name,
+                    'exch1' => $exch1,
+                );
+            }
+        }
+
+        fclose($handle);
+        return $callsigns;
     }
 
     private function find_matches_in_file($file_path, $callsign, $file)
