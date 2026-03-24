@@ -206,73 +206,93 @@
 
 <?php if (!empty($preview)) { ?>
 <script>
-$(document).ready(function () {
-    var table = $('#callhistory-preview-table').DataTable({
-        "pageLength": 100,
-        "lengthMenu": [[25, 50, 100, 250, -1], [25, 50, 100, 250, "All"]],
-        "pagingType": "full_numbers",
-        "order": [[2, "asc"]],
-        "columnDefs": [
-            { "orderable": false, "targets": 0 },
-            { "orderable": false, "targets": 6 },
-            { "orderable": false, "targets": 7 }
-        ],
-        "language": {
-            url: getDataTablesLanguageUrl()
-        }
-    });
-
-    function getAllRowChecks() {
-        return $(table.rows().nodes()).find('.row-check');
-    }
-
-    function updateSelectedCount() {
-        var count = getAllRowChecks().filter(':checked').length;
-        $('#selected-count').text(count);
-    }
-
-    $('#check-all').on('change', function () {
-        var checked = $(this).prop('checked');
-        getAllRowChecks().prop('checked', checked);
-        updateSelectedCount();
-    });
-
-    $('#select-all-btn').on('click', function () {
-        getAllRowChecks().prop('checked', true);
-        $('#check-all').prop('checked', true);
-        updateSelectedCount();
-    });
-
-    $('#deselect-all-btn').on('click', function () {
-        getAllRowChecks().prop('checked', false);
-        $('#check-all').prop('checked', false);
-        updateSelectedCount();
-    });
-
-    $('#callhistory-preview-table tbody').on('change', '.row-check', function () {
-        updateSelectedCount();
-    });
-
-    $('#apply-form').on('submit', function (e) {
-        var selectedChanges = [];
-
-        getAllRowChecks().filter(':checked').each(function () {
-            selectedChanges.push({
-                qso_id: parseInt(this.value, 10) || 0,
-                station_id: parseInt($(this).data('station-id'), 10) || 0,
-                new_sig: $(this).data('new-sig') || '',
-                new_sig_info: $(this).data('new-sig-info') || ''
-            });
-        });
-
-        if (selectedChanges.length === 0) {
-            e.preventDefault();
-            alert('No rows selected.');
+(function () {
+    function initCallhistoryPreviewTable() {
+        if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.DataTable) {
+            window.setTimeout(initCallhistoryPreviewTable, 50);
             return;
         }
 
-        $('#changes_json').val(JSON.stringify(selectedChanges));
-    });
-});
+        var $ = window.jQuery;
+        if ($.fn.dataTable.isDataTable('#callhistory-preview-table')) {
+            return;
+        }
+
+        var table = $('#callhistory-preview-table').DataTable({
+            "pageLength": 100,
+            "lengthMenu": [[25, 50, 100, 250, -1], [25, 50, 100, 250, "All"]],
+            "pagingType": "full_numbers",
+            "order": [[2, "asc"]],
+            "columnDefs": [
+                { "orderable": false, "targets": 0 },
+                { "orderable": false, "targets": 6 },
+                { "orderable": false, "targets": 7 }
+            ],
+            "language": {
+                url: getDataTablesLanguageUrl()
+            }
+        });
+
+        function getAllRowChecks() {
+            return $(table.rows().nodes()).find('.row-check');
+        }
+
+        function updateSelectedCount() {
+            var count = getAllRowChecks().filter(':checked').length;
+            $('#selected-count').text(count);
+        }
+
+        $('#check-all').on('change', function () {
+            var checked = $(this).prop('checked');
+            getAllRowChecks().prop('checked', checked);
+            updateSelectedCount();
+        });
+
+        $('#select-all-btn').on('click', function () {
+            getAllRowChecks().prop('checked', true);
+            $('#check-all').prop('checked', true);
+            updateSelectedCount();
+        });
+
+        $('#deselect-all-btn').on('click', function () {
+            getAllRowChecks().prop('checked', false);
+            $('#check-all').prop('checked', false);
+            updateSelectedCount();
+        });
+
+        $('#callhistory-preview-table tbody').on('change', '.row-check', function () {
+            updateSelectedCount();
+        });
+
+        $('#apply-form').on('submit', function (e) {
+            var selectedChanges = [];
+
+            getAllRowChecks().filter(':checked').each(function () {
+                selectedChanges.push({
+                    qso_id: parseInt(this.value, 10) || 0,
+                    station_id: parseInt($(this).data('station-id'), 10) || 0,
+                    new_sig: $(this).data('new-sig') || '',
+                    new_sig_info: $(this).data('new-sig-info') || ''
+                });
+            });
+
+            if (selectedChanges.length === 0) {
+                e.preventDefault();
+                alert('No rows selected.');
+                return;
+            }
+
+            $('#changes_json').val(JSON.stringify(selectedChanges));
+        });
+
+        updateSelectedCount();
+    }
+
+    if (document.readyState === 'complete') {
+        initCallhistoryPreviewTable();
+    } else {
+        window.addEventListener('load', initCallhistoryPreviewTable, { once: true });
+    }
+})();
 </script>
 <?php } ?>
