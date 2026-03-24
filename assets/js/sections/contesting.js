@@ -35,6 +35,10 @@ function escapeHtml(unsafeText) {
 	});
 }
 
+function normalizeCallhistoryText(value) {
+	return String(value || '').trim().toLowerCase();
+}
+
 function renderCallhistoryPanel(matches) {
 	var $card = $('#callhistory-info-panel');
 	var $panel = $('#callhistory-results');
@@ -50,12 +54,18 @@ function renderCallhistoryPanel(matches) {
 	var html = '<ul class="list-group list-group-flush">';
 
 	$.each(matches, function (_, match) {
-		var line = '<strong>' + escapeHtml(match.organization_label || 'Member') + '</strong>';
-		if (match.exch1) {
-			line += ' #' + escapeHtml(match.exch1);
+		var organizationLabel = String(match.organization_label || 'Member');
+		var membershipNumber = String(match.exch1 || '');
+		var memberName = String(match.name || '');
+		var normalizedMembershipNumber = normalizeCallhistoryText(membershipNumber);
+		var normalizedMemberName = normalizeCallhistoryText(memberName);
+
+		var line = '<strong>' + escapeHtml(organizationLabel) + '</strong>';
+		if (membershipNumber && normalizeCallhistoryText(organizationLabel).indexOf(normalizedMembershipNumber) === -1) {
+			line += ' #' + escapeHtml(membershipNumber);
 		}
-		if (match.name) {
-			line += ' - ' + escapeHtml(match.name);
+		if (memberName && normalizedMemberName !== normalizedMembershipNumber) {
+			line += ' - ' + escapeHtml(memberName);
 		}
 
 		html += '<li class="list-group-item px-0 py-2">' + line + '</li>';

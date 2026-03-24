@@ -1226,6 +1226,10 @@ function qsoCallhistoryEscapeHtml(unsafeText) {
 	});
 }
 
+function qsoCallhistoryNormalizeText(value) {
+	return String(value || '').trim().toLowerCase();
+}
+
 function renderQsoCallhistoryPanel(matches, defaultText) {
 	var $card = $('#qso-callhistory-inline');
 	var $panel = $('#qso-callhistory-results');
@@ -1242,12 +1246,18 @@ function renderQsoCallhistoryPanel(matches, defaultText) {
 	var html = '<ul class="list-group list-group-flush">';
 
 	$.each(matches, function(_, match) {
+		var organizationLabel = String(match.organization_label || 'Member');
+		var membershipNumber = String(match.exch1 || '');
+		var memberName = String(match.name || '');
+		var normalizedMembershipNumber = qsoCallhistoryNormalizeText(membershipNumber);
+		var normalizedMemberName = qsoCallhistoryNormalizeText(memberName);
+
 		var line = '<strong>' + qsoCallhistoryEscapeHtml(match.organization_label || 'Member') + '</strong>';
-		if (match.exch1) {
-			line += ' #' + qsoCallhistoryEscapeHtml(match.exch1);
+		if (membershipNumber && qsoCallhistoryNormalizeText(organizationLabel).indexOf(normalizedMembershipNumber) === -1) {
+			line += ' #' + qsoCallhistoryEscapeHtml(membershipNumber);
 		}
-		if (match.name) {
-			line += ' - ' + qsoCallhistoryEscapeHtml(match.name);
+		if (memberName && normalizedMemberName !== normalizedMembershipNumber) {
+			line += ' - ' + qsoCallhistoryEscapeHtml(memberName);
 		}
 
 		var sigValue = qsoCallhistoryEscapeHtml(match.organization_label || '');
