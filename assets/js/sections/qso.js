@@ -1023,8 +1023,72 @@ $("#callsign").focusout(function() {
 	} else {
 		// Reset QSO fields
 		resetDefaultQSOFields();
+		// Reset tabs - go back to Previous Contacts when callsign is cleared
+		resetToPreviousContactsTab();
 	}
 })
+
+// Function to reset back to Previous Contacts tab
+function resetToPreviousContactsTab() {
+	// Clear DXCC Summary tab content
+	$('#dxcc-summary-content').html('');
+	// Switch back to Previous Contacts tab
+	if (document.getElementById('previous-contacts-tab')) {
+		var previousContactsTab = new bootstrap.Tab(document.getElementById('previous-contacts-tab'));
+		previousContactsTab.show();
+	}
+	// Show the previous contacts table
+	$('#qso-last-table').show();
+	$('#partial_view').hide();
+}
+
+// Reset to Previous Contacts tab when form is reset
+$('#qso_input').on('reset', function() {
+	setTimeout(function() {
+		resetToPreviousContactsTab();
+	}, 100);
+});
+
+function resetQsoEntryOnEscape() {
+	var qsoForm = document.getElementById('qso_input');
+	if (!qsoForm) {
+		return;
+	}
+
+	qsoForm.reset();
+	lastCallsignUpdated = '';
+	resetDefaultQSOFields();
+	resetToPreviousContactsTab();
+	$('#callsign').trigger('focus');
+}
+
+// Global ESC handling on the QSO page: reset form, return to Previous Contacts, and focus callsign.
+$(document).off('keydown.qsoEscapeReset').on('keydown.qsoEscapeReset', function(e) {
+	if (e.key !== 'Escape' && e.keyCode !== 27) {
+		return;
+	}
+
+	if (!document.getElementById('qso_input')) {
+		return;
+	}
+
+	if ($(e.target).closest('.modal.show').length) {
+		return;
+	}
+
+	e.preventDefault();
+	e.stopPropagation();
+	resetQsoEntryOnEscape();
+});
+
+// Also handle when callsign is cleared (empty value entered)
+$('#callsign').on('input keyup', function() {
+	if ($(this).val() === '' && lastCallsignUpdated !== '') {
+		lastCallsignUpdated = '';
+		resetDefaultQSOFields();
+		resetToPreviousContactsTab();
+	}
+});
 
 // Only set the frequency when not set by userdata/PHP.
 if ($('#frequency').val() == "")

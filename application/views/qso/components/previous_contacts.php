@@ -47,6 +47,74 @@
     <?php $i++; } } ?>
   </table>
 </div>
+
+<!-- Pagination Controls -->
+<?php if (isset($total_pages) && $total_pages > 1): ?>
+<nav aria-label="Previous contacts pagination">
+  <ul class="pagination pagination-sm mb-0">
+    <!-- Previous Button -->
+    <li class="page-item <?php echo ($current_page == 0) ? 'disabled' : ''; ?>">
+      <?php if ($current_page > 0): ?>
+        <a class="page-link" href="#" hx-get="<?php echo site_url('/qso/component_past_contacts?page=' . ($current_page - 1)); ?>" hx-target="#qso-last-table" hx-swap="outerHTML">
+          <?php echo lang('prev'); ?>
+        </a>
+      <?php else: ?>
+        <span class="page-link"><?php echo lang('prev'); ?></span>
+      <?php endif; ?>
+    </li>
+
+    <!-- Page Numbers -->
+    <?php
+    $start_page = max(0, $current_page - 2);
+    $end_page = min($total_pages - 1, $current_page + 2);
+
+    if ($start_page > 0): ?>
+      <li class="page-item">
+        <a class="page-link" href="#" hx-get="<?php echo site_url('/qso/component_past_contacts?page=0'); ?>" hx-target="#qso-last-table" hx-swap="outerHTML">1</a>
+      </li>
+      <?php if ($start_page > 1): ?>
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+      <?php endif;
+    endif;
+
+    for ($i = $start_page; $i <= $end_page; $i++):
+      $page_num = $i + 1;
+    ?>
+      <li class="page-item <?php echo ($current_page == $i) ? 'active' : ''; ?>">
+        <?php if ($current_page == $i): ?>
+          <span class="page-link"><?php echo $page_num; ?></span>
+        <?php else: ?>
+          <a class="page-link" href="#" hx-get="<?php echo site_url('/qso/component_past_contacts?page=' . $i); ?>" hx-target="#qso-last-table" hx-swap="outerHTML">
+            <?php echo $page_num; ?>
+          </a>
+        <?php endif; ?>
+      </li>
+    <?php endfor;
+
+    if ($end_page < $total_pages - 1): ?>
+      <?php if ($end_page < $total_pages - 2): ?>
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+      <?php endif; ?>
+      <li class="page-item">
+        <a class="page-link" href="#" hx-get="<?php echo site_url('/qso/component_past_contacts?page=' . ($total_pages - 1)); ?>" hx-target="#qso-last-table" hx-swap="outerHTML">
+          <?php echo $total_pages; ?>
+        </a>
+      </li>
+    <?php endif; ?>
+
+    <!-- Next Button -->
+    <li class="page-item <?php echo ($current_page >= $total_pages - 1) ? 'disabled' : ''; ?>">
+      <?php if ($current_page < $total_pages - 1): ?>
+        <a class="page-link" href="#" hx-get="<?php echo site_url('/qso/component_past_contacts?page=' . ($current_page + 1)); ?>" hx-target="#qso-last-table" hx-swap="outerHTML">
+          <?php echo lang('next'); ?>
+        </a>
+      <?php else: ?>
+        <span class="page-link"><?php echo lang('next'); ?></span>
+      <?php endif; ?>
+    </li>
+  </ul>
+</nav>
+<?php endif; ?>
 </div>
 
 <?php

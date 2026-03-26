@@ -846,20 +846,45 @@
 
       <div class="card previous-qsos">
         <div class="card-header">
-          <h4 class="card-title" id="timesWorked" style="font-size: 16px; font-weight: bold;"><?php echo lang('qso_title_previous_contacts'); ?></h4>
+          <ul class="nav nav-tabs card-header-tabs" id="qsoRightTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="previous-contacts-tab" data-bs-toggle="tab" data-bs-target="#previous-contacts-pane" type="button" role="tab" aria-controls="previous-contacts-pane" aria-selected="true">
+                <?php echo lang('qso_title_previous_contacts'); ?>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="dxcc-summary-tab" data-bs-toggle="tab" data-bs-target="#dxcc-summary-pane" type="button" role="tab" aria-controls="dxcc-summary-pane" aria-selected="false">
+                DXCC Summary
+              </button>
+            </li>
+          </ul>
         </div>
 
-        <div id="qso-callhistory-inline" class="px-3 pt-2 pb-1 border-bottom" style="display: none;">
-          <div id="qso-callhistory-results"></div>
-        </div>
+        <div class="card-body">
+          <div class="tab-content" id="qsoRightTabContent">
+            <!-- Previous Contacts Tab -->
+            <div class="tab-pane fade show active" id="previous-contacts-pane" role="tabpanel" aria-labelledby="previous-contacts-tab">
+              <div id="qso-callhistory-inline" class="px-0 pt-2 pb-1 border-bottom" style="display: none;">
+                <div id="qso-callhistory-results"></div>
+              </div>
 
-        <div id="partial_view" style="font-size: 0.95rem;"></div>
+              <div id="partial_view" style="font-size: 0.95rem;"></div>
 
-        <div id="qso-last-table" hx-get="<?php echo site_url('/qso/component_past_contacts'); ?>" hx-trigger="load, every 5s">
+              <div id="qso-last-table" hx-get="<?php echo site_url('/qso/component_past_contacts'); ?>" hx-trigger="load, every 5s">
 
+              </div>
+              <small class="mt-0.5 d-block"><?php echo lang('qso_previous_max_shown'); ?></small>
+            </div>
+
+            <!-- DXCC Summary Tab -->
+            <div class="tab-pane fade" id="dxcc-summary-pane" role="tabpanel" aria-labelledby="dxcc-summary-tab">
+              <div id="dxcc-summary-content">
+                <!-- DXCC Summary content will be loaded here -->
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <small class="mt-0.5" style="float: right;"><?php echo lang('qso_previous_max_shown'); ?></small>
     </div>
   </div>
 

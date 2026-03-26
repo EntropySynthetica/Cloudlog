@@ -33,7 +33,11 @@ class QSO extends CI_Controller {
 		$data['notice'] = false;
 		$data['stations'] = $this->stations->all_of_user();
 		$data['radios'] = $this->cat->radios();
-		$data['query'] = $this->logbook_model->last_custom('5');
+		$data['query'] = $this->logbook_model->last_custom_paginated(5, 0);
+		$data['total_rows'] = $this->logbook_model->last_custom_count();
+		$data['total_pages'] = ceil($data['total_rows'] / 5);
+		$data['current_page'] = 0;
+		$data['limit'] = 5;
 		$data['dxcc'] = $this->logbook_model->fetchDxcc();
 		$data['iota'] = $this->logbook_model->fetchIota();
 		$data['modes'] = $this->modes->active();
@@ -705,7 +709,15 @@ class QSO extends CI_Controller {
     $this->load->model('logbook_model');
     if(!$this->user_model->authorize(2)) { $this->session->set_flashdata('notice', 'You\'re not allowed to do that!'); redirect('dashboard'); }
 
-    $data['query'] = $this->logbook_model->last_custom('5');
+    $limit = 5;
+    $page = $this->input->get('page') ? (int)$this->input->get('page') : 0;
+    $offset = $page * $limit;
+
+    $data['query'] = $this->logbook_model->last_custom_paginated($limit, $offset);
+    $data['total_rows'] = $this->logbook_model->last_custom_count();
+    $data['total_pages'] = ceil($data['total_rows'] / $limit);
+    $data['current_page'] = $page;
+    $data['limit'] = $limit;
 
     // Load view
     $this->load->view('qso/components/previous_contacts', $data);
