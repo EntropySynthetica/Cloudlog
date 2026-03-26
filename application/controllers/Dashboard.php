@@ -130,6 +130,7 @@ class Dashboard extends CI_Controller
 			$data['dashboard_eqslcard_card'] = false;
 			$data['dashboard_lotw_card'] = false;
 			$data['dashboard_vuccgrids_card'] = false;
+			$data['dashboard_map_greyline'] = true;
 
 			$dashboard_options = $this->user_options_model->get_options('dashboard')->result();
 
@@ -145,6 +146,7 @@ class Dashboard extends CI_Controller
 			$data['dashboard_eqslcard_card'] = isset($options_map['dashboard_eqslcards_card']['enabled']) && $options_map['dashboard_eqslcards_card']['enabled'] == 'true';
 			$data['dashboard_lotw_card'] = isset($options_map['dashboard_lotw_card']['enabled']) && $options_map['dashboard_lotw_card']['enabled'] == 'true';
 			$data['dashboard_vuccgrids_card'] = isset($options_map['dashboard_vuccgrids_card']['enabled']) && $options_map['dashboard_vuccgrids_card']['enabled'] == 'true';
+			$data['dashboard_map_greyline'] = !isset($options_map['dashboard_map_greyline']['enabled']) || $options_map['dashboard_map_greyline']['enabled'] == 'true';
 
 			// Only load VUCC data if the card is actually enabled
 			if ($data['dashboard_vuccgrids_card']) {

@@ -83,6 +83,7 @@ class User extends CI_Controller
 		$data['dashboard_eqslcard_card'] = false;
 		$data['dashboard_lotw_card'] = false;
 		$data['dashboard_vuccgrids_card'] = false;
+		$data['dashboard_map_greyline'] = true;
 
 		$dashboard_options = $this->user_options_model->get_options('dashboard')->result();
 
@@ -136,6 +137,14 @@ class User extends CI_Controller
 					$data['dashboard_vuccgrids_card'] = true;
 				} else {
 					$data['dashboard_vuccgrids_card'] = false;
+				}
+			}
+
+			if ($option_name == 'dashboard_map_greyline' && $option_key == 'enabled') {
+				if ($item->option_value == 'true') {
+					$data['dashboard_map_greyline'] = true;
+				} else {
+					$data['dashboard_map_greyline'] = false;
 				}
 			}
 		}
@@ -675,6 +684,7 @@ class User extends CI_Controller
 			$data['dashboard_eqslcard_card'] = false;
 			$data['dashboard_lotw_card'] = false;
 			$data['dashboard_vuccgrids_card'] = false;
+			$data['dashboard_map_greyline'] = true;
 
 			$dashboard_options = $this->user_options_model->get_options('dashboard')->result();
 
@@ -728,6 +738,14 @@ class User extends CI_Controller
 						$data['dashboard_vuccgrids_card'] = true;
 					} else {
 						$data['dashboard_vuccgrids_card'] = false;
+					}
+				}
+
+				if ($option_name == 'dashboard_map_greyline' && $option_key == 'enabled') {
+					if ($item->option_value == 'true') {
+						$data['dashboard_map_greyline'] = true;
+					} else {
+						$data['dashboard_map_greyline'] = false;
 					}
 				}
 			}
@@ -891,6 +909,12 @@ class User extends CI_Controller
 							$this->user_options_model->set_option('dashboard', 'dashboard_vuccgrids_card', array('enabled' => 'true'));
 						} else {
 							$this->user_options_model->set_option('dashboard', 'dashboard_vuccgrids_card', array('enabled' => 'false'));
+						}
+
+						if (isset($_POST['user_dashboard_enable_map_greyline'])) {
+							$this->user_options_model->set_option('dashboard', 'dashboard_map_greyline', array('enabled' => 'true'));
+						} else {
+							$this->user_options_model->set_option('dashboard', 'dashboard_map_greyline', array('enabled' => 'false'));
 						}
 
 						// [MAP Custom] ADD to user options //

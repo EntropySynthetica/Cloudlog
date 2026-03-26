@@ -343,6 +343,13 @@
 																																															} ?>>
 												<label class="form-check-label" for="DashboardvuccgridsCardCheck">Enable VUCC-Grids Card</label>
 											</div>
+
+											<div class="form-check form-switch">
+												<input name="user_dashboard_enable_map_greyline" class="form-check-input" type="checkbox" role="switch" id="DashboardMapGreylineCheck" <?php if (!isset($dashboard_map_greyline) || $dashboard_map_greyline) {
+																										echo 'checked';
+																									} ?>>
+												<label class="form-check-label" for="DashboardMapGreylineCheck">Enable Dashboard Map Greyline Layer</label>
+											</div>
 										</div>
 									</div>
 								</div>

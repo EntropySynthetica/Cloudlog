@@ -39,6 +39,7 @@
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/leaflet.js"></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/Control.FullScreen.js"></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/L.Maidenhead.qrb.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/L.Terminator.js"></script>
 <?php if ($this->uri->segment(1) == "activators") { ?>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/L.Maidenhead.activators.js"></script>
 <?php } ?>
@@ -1006,6 +1007,71 @@ $(document).ready(function() {
                 },
             });
 
+            var markersLayer = L.layerGroup().addTo(map);
+
+            var baseLayers = {
+                "Map": layer
+            };
+            var overlays = {
+                "QSOs": markersLayer
+            };
+
+            var greylineEnabled = <?php echo (isset($dashboard_map_greyline) && $dashboard_map_greyline) ? 'true' : 'false'; ?>;
+            var greyline = L.terminator({
+                color: '#666666',
+                fillColor: '#222222',
+                fillOpacity: 0.25,
+                weight: 1,
+                interactive: false
+            });
+            var greylineIntervalId = null;
+
+            function refreshGreyline() {
+                greyline.setTime(new Date());
+            }
+
+            function startGreylineUpdates() {
+                if (greylineIntervalId !== null) {
+                    return;
+                }
+                refreshGreyline();
+                greylineIntervalId = setInterval(refreshGreyline, 60000);
+            }
+
+            function stopGreylineUpdates() {
+                if (greylineIntervalId !== null) {
+                    clearInterval(greylineIntervalId);
+                    greylineIntervalId = null;
+                }
+            }
+
+            overlays["Greyline"] = greyline;
+
+            if (greylineEnabled) {
+                greyline.addTo(map);
+                startGreylineUpdates();
+            }
+
+            L.control.layers(baseLayers, overlays, {
+                collapsed: true
+            }).addTo(map);
+
+            map.on('overlayadd', function(event) {
+                if (event.layer === greyline) {
+                    startGreylineUpdates();
+                }
+            });
+
+            map.on('overlayremove', function(event) {
+                if (event.layer === greyline) {
+                    stopGreylineUpdates();
+                }
+            });
+
+            map.on('unload', function() {
+                stopGreylineUpdates();
+            });
+
             /*var printer = L.easyPrint({
                 sizeModes: ['Current'],
                 filename: 'myMap',
@@ -1031,16 +1097,21 @@ $(document).ready(function() {
                                         html: `<i class="${iconsList.qso.icon}" style="color:${iconsList.qso.color}"></i>`
                                     });
 
-                                    L.marker([marker.lat, marker.lng], {
+                                    markers[key] = L.marker([marker.lat, marker.lng], {
                                             icon: icon
                                         })
-                                        .addTo(map)
+                                        .addTo(markersLayer)
                                         .bindPopup(html);
                                 }
                             });
                             Object.keys(markers).forEach(key => {
                                 if (!newMarkers[key]) {
-                                    map.removeLayer(markers[key]);
+                                    markersLayer.removeLayer(markers[key]);
+                                }
+                            });
+                            Object.keys(markers).forEach(key => {
+                                if (newMarkers[key]) {
+                                    newMarkers[key] = markers[key];
                                 }
                             });
                             markers = newMarkers;
