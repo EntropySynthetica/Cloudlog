@@ -15,7 +15,26 @@ $totalPages = max(1, (int) ceil($recordCount / $pageSize));
 ?>
 
 <div id="dxped-dashboard-card" data-pagesize="<?php echo $pageSize; ?>">
-    <table class="table table-striped border-top mb-2">
+    <style>
+        #dxped-dashboard-card table {
+            --bs-table-striped-bg: transparent;
+            --bs-table-accent-bg: transparent;
+        }
+
+        #dxped-dashboard-card .dxped-row > td {
+            box-shadow: none !important;
+        }
+
+        #dxped-dashboard-card .dxped-row.dxped-worked > td {
+            background-color: #cfe8cf !important;
+        }
+
+        #dxped-dashboard-card .dxped-row.dxped-needed > td {
+            background-color: #f2d6d6 !important;
+        }
+    </style>
+
+    <table class="table border-top mb-2">
         <tr class="titles">
             <td colspan="2"><i class="fas fa-chart-bar"></i> DXPeditions (This Week)</td>
             <td class="text-end">
@@ -29,21 +48,22 @@ $totalPages = max(1, (int) ceil($recordCount / $pageSize));
             </tr>
         <?php } else { ?>
             <?php foreach ($thisWeekRecords as $index => $record) {
-                $name = $record['workedBefore'] == 1 ? 'worked_before' : 'not_worked_before';
+                $isWorked = $record['workedBefore'] == 1;
+                $rowClass = $isWorked ? 'dxped-worked' : 'dxped-needed';
                 $displayCallsign = isset($record['callsign']) ? $record['callsign'] : 'Unknown';
                 $tooltipNote = htmlspecialchars(isset($record['6']) ? $record['6'] : '', ENT_QUOTES, 'UTF-8');
                 $page = (int) floor($index / $pageSize) + 1;
             ?>
-                <tr class="dxped-row" data-page="<?php echo $page; ?>" <?php echo $page > 1 ? 'style="display:none;"' : ''; ?>>
-                    <td id="<?php echo $name; ?>"><?php echo $record['daysLeft']; ?></td>
-                    <td id="<?php echo $name; ?>">
+                <tr class="dxped-row <?php echo $rowClass; ?>" data-page="<?php echo $page; ?>" <?php echo $page > 1 ? 'style="display:none;"' : ''; ?>>
+                    <td><?php echo $record['daysLeft']; ?></td>
+                    <td>
                         <?php if ($displayCallsign !== 'Unknown') { ?>
                             <a target="_blank" href="https://dxheat.com/db/<?php echo $displayCallsign; ?>" data-bs-toggle="tooltip" data-bs-title="<?php echo $tooltipNote; ?>"><?php echo $displayCallsign; ?></a>
                         <?php } else { ?>
                             <span data-bs-toggle="tooltip" data-bs-title="<?php echo $tooltipNote; ?>">Unknown</span>
                         <?php } ?>
                     </td>
-                    <td id="<?php echo $name; ?>"><?php echo $record['2']; ?></td>
+                    <td><?php echo $record['2']; ?></td>
                 </tr>
             <?php } ?>
         <?php } ?>

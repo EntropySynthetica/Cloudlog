@@ -310,6 +310,13 @@
 											</div>
 
 											<div class="form-check form-switch">
+												<input name="user_dashboard_dxpedition_sat_worked" class="form-check-input" type="checkbox" role="switch" id="DashboardDxpeditionSatWorkedCheck" <?php if ($dashboard_dxpedition_sat_worked) {
+																																					echo 'checked';
+																																				} ?>>
+												<label class="form-check-label" for="DashboardDxpeditionSatWorkedCheck">Count Satellite QSOs as Worked for DXPeditions</label>
+											</div>
+
+											<div class="form-check form-switch">
 												<input name="user_dashboard_enable_qslcards_card" class="form-check-input" type="checkbox" role="switch" id="DashboardQSLCardCheck" <?php if ($dashboard_qslcard_card) {
 																																														echo 'checked';
 																																													} ?>>

@@ -78,6 +78,7 @@ class User extends CI_Controller
 
 		// Set defaults
 		$data['dashboard_upcoming_dx_card'] = false;
+		$data['dashboard_dxpedition_sat_worked'] = false;
 		$data['dashboard_qslcard_card'] = false;
 		$data['dashboard_eqslcard_card'] = false;
 		$data['dashboard_lotw_card'] = false;
@@ -95,6 +96,14 @@ class User extends CI_Controller
 					$data['dashboard_upcoming_dx_card'] = true;
 				} else {
 					$data['dashboard_upcoming_dx_card'] = false;
+				}
+			}
+
+			if ($option_name == 'dashboard_dxpedition_sat_worked' && $option_key == 'enabled') {
+				if ($item->option_value == 'true') {
+					$data['dashboard_dxpedition_sat_worked'] = true;
+				} else {
+					$data['dashboard_dxpedition_sat_worked'] = false;
 				}
 			}
 
@@ -661,6 +670,7 @@ class User extends CI_Controller
 
 			// Set defaults
 			$data['dashboard_upcoming_dx_card'] = false;
+			$data['dashboard_dxpedition_sat_worked'] = false;
 			$data['dashboard_qslcard_card'] = false;
 			$data['dashboard_eqslcard_card'] = false;
 			$data['dashboard_lotw_card'] = false;
@@ -678,6 +688,14 @@ class User extends CI_Controller
 						$data['dashboard_upcoming_dx_card'] = true;
 					} else {
 						$data['dashboard_upcoming_dx_card'] = false;
+					}
+				}
+
+				if ($option_name == 'dashboard_dxpedition_sat_worked' && $option_key == 'enabled') {
+					if ($item->option_value == 'true') {
+						$data['dashboard_dxpedition_sat_worked'] = true;
+					} else {
+						$data['dashboard_dxpedition_sat_worked'] = false;
 					}
 				}
 
@@ -843,6 +861,12 @@ class User extends CI_Controller
 							$this->user_options_model->set_option('dashboard', 'dashboard_upcoming_dx_card', array('enabled' => 'true'));
 						} else {
 							$this->user_options_model->set_option('dashboard', 'dashboard_upcoming_dx_card', array('enabled' => 'false'));
+						}
+
+						if (isset($_POST['user_dashboard_dxpedition_sat_worked'])) {
+							$this->user_options_model->set_option('dashboard', 'dashboard_dxpedition_sat_worked', array('enabled' => 'true'));
+						} else {
+							$this->user_options_model->set_option('dashboard', 'dashboard_dxpedition_sat_worked', array('enabled' => 'false'));
 						}
 
 						if (isset($_POST['user_dashboard_enable_qslcards_card'])) {

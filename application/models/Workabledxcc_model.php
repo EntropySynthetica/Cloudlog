@@ -5,6 +5,7 @@ class Workabledxcc_model extends CI_Model
     // Cache for DXCC lookups to avoid repeated queries
     private $dxccCache = array();
     private $workedCache = array();
+    private $includeSatelliteWorked = null;
 
     /**
      * Normalize DXpedition callsigns for display.
@@ -93,6 +94,7 @@ class Workabledxcc_model extends CI_Model
         
         // Batch query for satellite contacts
         $satelliteResults = $this->batchSatelliteQuery($entities, $logbooks_locations_array);
+        $includeSatelliteWorked = $this->shouldIncludeSatelliteWorked();
         
         // Debug: Log results
         log_message('debug', 'Workable DXCC: Worked results: ' . json_encode($workedResults));
@@ -101,14 +103,37 @@ class Workabledxcc_model extends CI_Model
         
         // Combine results
         foreach ($entities as $entity) {
+            $workedTerrestrial = isset($workedResults[$entity]);
+            $workedSatellite = isset($satelliteResults[$entity]);
             $results[$entity] = [
-                'workedBefore' => isset($workedResults[$entity]),
+                'workedBefore' => $workedTerrestrial || ($includeSatelliteWorked && $workedSatellite),
                 'confirmed' => isset($confirmedResults[$entity]),
-                'workedViaSatellite' => isset($satelliteResults[$entity])
+                'workedViaSatellite' => $workedSatellite
             ];
         }
         
         return $results;
+    }
+
+    /**
+     * Check if the logged-in user wants SAT QSOs to count as "worked" in DXpedition status.
+     *
+     * @return bool
+     */
+    private function shouldIncludeSatelliteWorked()
+    {
+        if ($this->includeSatelliteWorked !== null) {
+            return $this->includeSatelliteWorked;
+        }
+
+        $this->load->model('user_options_model');
+        $option = $this->user_options_model->get_options('dashboard', [
+            'option_name' => 'dashboard_dxpedition_sat_worked',
+            'option_key' => 'enabled',
+        ])->row();
+
+        $this->includeSatelliteWorked = isset($option->option_value) && $option->option_value === 'true';
+        return $this->includeSatelliteWorked;
     }
 
     /**
