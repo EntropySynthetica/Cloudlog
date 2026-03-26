@@ -128,7 +128,21 @@ class Callhistory_model extends CI_Model {
             $this->db->join('station_profile', 'station_profile.station_id = ' . $table . '.station_id');
             $this->db->where('station_profile.user_id', (int)$user_id);
             $this->db->where_in($table . '.station_id', $station_ids);
-            $this->db->where('UPPER(REPLACE(' . $table . '.COL_CALL, "Ø", "0")) IN (' . implode(',', $escaped_callsigns) . ')', NULL, FALSE);
+            // Match exact call OR compound callsigns where any segment matches (e.g. MM9SQL/P, F/MM9SQL, F/MM9SQL/P)
+            $in_list  = implode(',', $escaped_callsigns);
+            $col      = $table . '.COL_CALL';
+            $norm     = 'UPPER(REPLACE(%s, "Ø", "0"))';
+            $exact    = sprintf($norm, $col);
+            $first    = sprintf($norm, 'SUBSTRING_INDEX(' . $col . ', "/", 1)');
+            $last     = sprintf($norm, 'SUBSTRING_INDEX(' . $col . ', "/", -1)');
+            $middle   = sprintf($norm, 'SUBSTRING_INDEX(SUBSTRING_INDEX(' . $col . ', "/", 2), "/", -1)');
+            $this->db->where(
+                '(' . $exact . ' IN (' . $in_list . ')'
+                . ' OR ' . $first  . ' IN (' . $in_list . ')'
+                . ' OR ' . $last   . ' IN (' . $in_list . ')'
+                . ' OR ' . $middle . ' IN (' . $in_list . '))',
+                NULL, FALSE
+            );
             if (!empty($start_date)) {
                 $this->db->where($table . '.COL_TIME_ON >=', $start_date . ' 00:00:00');
             }

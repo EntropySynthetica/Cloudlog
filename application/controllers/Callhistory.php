@@ -228,11 +228,16 @@ class Callhistory extends CI_Controller {
         $preview = array();
         foreach ($qsos as $qso) {
             $normalized_call = $this->normalize_callsign($qso->COL_CALL);
-            if (!isset($all_callsigns[$normalized_call])) {
+            // Fall back to base call (strips /P prefix, country prefix etc.) for index lookup
+            if (isset($all_callsigns[$normalized_call])) {
+                $lookup_key = $normalized_call;
+            } elseif (isset($all_callsigns[$this->extract_base_callsign($normalized_call)])) {
+                $lookup_key = $this->extract_base_callsign($normalized_call);
+            } else {
                 continue;
             }
 
-            $call_data = $all_callsigns[$normalized_call];
+            $call_data = $all_callsigns[$lookup_key];
             $proposed_sig = $file->organization_label;
             $proposed_sig_info = trim((string)($call_data['exch1'] ?? ''));
 
@@ -593,7 +598,12 @@ class Callhistory extends CI_Controller {
             $row_callsign = $this->extract_by_map_or_index($row, $header_map, array('call', 'callsign', 'callsigns'), 0);
             $row_callsign = $this->normalize_callsign($row_callsign);
 
-            if ($row_callsign === '' || $row_callsign !== $callsign) {
+            if ($row_callsign === '') {
+                continue;
+            }
+
+            // Match against the full input callsign OR its base call (strips prefix/suffix like F/ or /P)
+            if ($row_callsign !== $callsign && $row_callsign !== $this->extract_base_callsign($callsign)) {
                 continue;
             }
 
@@ -836,5 +846,19 @@ class Callhistory extends CI_Controller {
         $callsign = strtoupper(trim((string)$callsign));
         $callsign = str_replace('Ø', '0', $callsign);
         return $callsign;
+    }
+
+    /**
+     * Extract the base callsign from a compound callsign like F/MM9SQL/P or MM9SQL/P.
+     * Returns the longest segment when split by '/', which is typically the base call.
+     */
+    private function extract_base_callsign($callsign)
+    {
+        if (strpos($callsign, '/') === FALSE) {
+            return $callsign;
+        }
+        $parts = explode('/', $callsign);
+        usort($parts, function ($a, $b) { return strlen($b) - strlen($a); });
+        return $parts[0];
     }
 }
