@@ -60,7 +60,7 @@ class User extends CI_Controller
 		$this->form_validation->set_rules('user_type', 'Type', 'required');
 		$this->form_validation->set_rules('user_firstname', 'First name', 'required');
 		$this->form_validation->set_rules('user_lastname', 'Last name', 'required');
-		$this->form_validation->set_rules('user_callsign', 'Callsign', 'required');
+		$this->form_validation->set_rules('user_callsign', 'Callsign', 'trim|required|callback_check_unique_callsign');
 		$this->form_validation->set_rules('user_locator', 'Locator', 'required');
 		$this->form_validation->set_rules('user_locator', 'Locator', 'callback_check_locator');
 		$this->form_validation->set_rules('user_timezone', 'Timezone', 'required');
@@ -222,6 +222,9 @@ class User extends CI_Controller
 				case EEMAILEXISTS:
 					$data['email_error'] = 'E-mail address <b>' . $this->input->post('user_email') . '</b> already in use!';
 					break;
+				case ECALLSIGNEXISTS:
+					$data['callsign_error'] = 'Callsign <b>' . strtoupper($this->input->post('user_callsign')) . '</b> already in use!';
+					break;
 				case EPASSWORDINVALID:
 					$data['password_error'] = 'Invalid password!';
 					break;
@@ -317,11 +320,11 @@ class User extends CI_Controller
 		$this->form_validation->set_rules('user_name', 'Username', 'required|xss_clean');
 		$this->form_validation->set_rules('user_email', 'E-mail', 'required|xss_clean');
 		if ($this->session->userdata('user_type') == 99) {
-			$this->form_validation->set_rules('user_type', 'Type', 'required|xss_clean');
+			$this->form_validation->set_rules('user_type', 'Type', 'required|xss_clean|callback_check_last_admin_role');
 		}
 		$this->form_validation->set_rules('user_firstname', 'First name', 'required|xss_clean');
 		$this->form_validation->set_rules('user_lastname', 'Last name', 'required|xss_clean');
-		$this->form_validation->set_rules('user_callsign', 'Callsign', 'trim|required|xss_clean');
+		$this->form_validation->set_rules('user_callsign', 'Callsign', 'trim|required|xss_clean|callback_check_unique_callsign');
 		$this->form_validation->set_rules('user_clublog_name', 'Clublog Email', 'callback_check_clublog_email');
 		$this->form_validation->set_rules('user_locator', 'Locator', 'callback_check_locator');
 		$this->form_validation->set_rules('user_timezone', 'Timezone', 'required');
@@ -766,6 +769,12 @@ class User extends CI_Controller
 				case EEMAILEXISTS:
 					$data['email_error'] = 'E-mail address <b>' . $this->input->post('user_email', true) . '</b> already in use!';
 					break;
+				case ECALLSIGNEXISTS:
+					$data['callsign_error'] = 'Callsign <b>' . strtoupper($this->input->post('user_callsign', true)) . '</b> already in use!';
+					break;
+				case ELASTADMIN:
+					$data['usertype_error'] = 'At least one admin account must remain. You cannot change the only admin to another role.';
+					break;
 				case EPASSWORDINVALID:
 					$data['password_error'] = 'Invalid password!';
 					break;
@@ -1116,7 +1125,7 @@ class User extends CI_Controller
 		$this->form_validation->set_rules('user_password_confirm', 'Password Confirmation', 'required|matches[user_password]');
 		$this->form_validation->set_rules('user_firstname', 'First name', 'required');
 		$this->form_validation->set_rules('user_lastname', 'Last name', 'required');
-		$this->form_validation->set_rules('user_callsign', 'Callsign', 'required');
+		$this->form_validation->set_rules('user_callsign', 'Callsign', 'trim|required|callback_check_unique_callsign');
 		$this->form_validation->set_rules('user_locator', 'Locator', 'callback_check_locator');
 		$this->form_validation->set_rules('user_timezone', 'Timezone', 'required');
 
@@ -1208,6 +1217,9 @@ class User extends CI_Controller
 				break;
 			case EEMAILEXISTS:
 				$data['email_error'] = 'E-mail address <b>' . $this->input->post('user_email', true) . '</b> already in use!';
+				break;
+			case ECALLSIGNEXISTS:
+				$data['callsign_error'] = 'Callsign <b>' . strtoupper($this->input->post('user_callsign', true)) . '</b> already in use!';
 				break;
 			case EPASSWORDINVALID:
 				$data['password_error'] = 'Invalid password!';
@@ -1480,6 +1492,45 @@ class User extends CI_Controller
 			$this->form_validation->set_message('check_clublog_email', 'Clublog username must be a valid email address as Clublog no longer accepts callsigns as usernames.');
 			return false;
 		}
+	}
+
+	function check_unique_callsign($callsign)
+	{
+		$this->load->model('user_model');
+
+		$callsign = strtoupper(trim((string) $callsign));
+		if ($callsign === '') {
+			return true;
+		}
+
+		$exclude_user_id = $this->input->post('id', true);
+		if ($exclude_user_id === NULL || $exclude_user_id === '') {
+			$exclude_user_id = $this->uri->segment(3);
+		}
+
+		if ($this->user_model->exists_by_callsign($callsign, $exclude_user_id)) {
+			$this->form_validation->set_message('check_unique_callsign', 'The callsign ' . $callsign . ' is already in use.');
+			return false;
+		}
+
+		return true;
+	}
+
+	function check_last_admin_role($user_type)
+	{
+		$this->load->model('user_model');
+
+		$user_id = $this->input->post('id', true);
+		if ($user_id === NULL || $user_id === '') {
+			$user_id = $this->uri->segment(3);
+		}
+
+		if ($user_id && $this->user_model->would_remove_last_admin($user_id, $user_type)) {
+			$this->form_validation->set_message('check_last_admin_role', 'At least one admin account must remain. You cannot change the only admin to another role.');
+			return false;
+		}
+
+		return true;
 	}
 
 	function check_locator($grid)
