@@ -68,11 +68,11 @@
     L.Terminator = L.Polygon.extend({
         options: {
             time: null,
-            resolution: 2,
-            weight: 1,
-            color: '#555555',
-            fillColor: '#333333',
-            fillOpacity: 0.2,
+            resolution: 1,
+            weight: 1.5,
+            color: '#4a6fa5',
+            fillColor: '#001f3f',
+            fillOpacity: 0.18,
             interactive: false,
             bubblingMouseEvents: false
         },

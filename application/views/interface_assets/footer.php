@@ -1018,10 +1018,10 @@ $(document).ready(function() {
 
             var greylineEnabled = <?php echo (isset($dashboard_map_greyline) && $dashboard_map_greyline) ? 'true' : 'false'; ?>;
             var greyline = L.terminator({
-                color: '#666666',
-                fillColor: '#222222',
-                fillOpacity: 0.25,
-                weight: 1,
+                color: '#4a6fa5',
+                fillColor: '#001f3f',
+                fillOpacity: 0.18,
+                weight: 1.5,
                 interactive: false
             });
             var greylineIntervalId = null;
