@@ -30,17 +30,17 @@ $totalPages = max(1, (int) ceil($recordCount / $pageSize));
         <?php } else { ?>
             <?php foreach ($thisWeekRecords as $index => $record) {
                 $name = $record['workedBefore'] == 1 ? 'worked_before' : 'not_worked_before';
-                $displayCallsign = isset($record['callsign']) ? $record['callsign'] : '-';
+                $displayCallsign = isset($record['callsign']) ? $record['callsign'] : 'Unknown';
                 $tooltipNote = htmlspecialchars(isset($record['6']) ? $record['6'] : '', ENT_QUOTES, 'UTF-8');
                 $page = (int) floor($index / $pageSize) + 1;
             ?>
                 <tr class="dxped-row" data-page="<?php echo $page; ?>" <?php echo $page > 1 ? 'style="display:none;"' : ''; ?>>
                     <td id="<?php echo $name; ?>"><?php echo $record['daysLeft']; ?></td>
                     <td id="<?php echo $name; ?>">
-                        <?php if ($displayCallsign !== '-') { ?>
+                        <?php if ($displayCallsign !== 'Unknown') { ?>
                             <a target="_blank" href="https://dxheat.com/db/<?php echo $displayCallsign; ?>" data-bs-toggle="tooltip" data-bs-title="<?php echo $tooltipNote; ?>"><?php echo $displayCallsign; ?></a>
                         <?php } else { ?>
-                            <span data-bs-toggle="tooltip" data-bs-title="<?php echo $tooltipNote; ?>">-</span>
+                            <span data-bs-toggle="tooltip" data-bs-title="<?php echo $tooltipNote; ?>">Unknown</span>
                         <?php } ?>
                     </td>
                     <td id="<?php echo $name; ?>"><?php echo $record['2']; ?></td>

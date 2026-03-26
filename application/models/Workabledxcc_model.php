@@ -8,7 +8,7 @@ class Workabledxcc_model extends CI_Model
 
     /**
      * Normalize DXpedition callsigns for display.
-     * Placeholder values like F/H and M/S are rendered as "-".
+     * Placeholder values like F/H and M/S are rendered as "Unknown".
      *
      * @param string|null $callsign
      * @return string
@@ -18,12 +18,12 @@ class Workabledxcc_model extends CI_Model
         $normalized = strtoupper(trim((string) $callsign));
 
         if ($normalized === '') {
-            return '-';
+            return 'Unknown';
         }
 
         // Filter out placeholder/non-callsign patterns such as F/H, M/S.
         if (preg_match('/^[A-Z]\/[A-Z]$/', $normalized)) {
-            return '-';
+            return 'Unknown';
         }
 
         return $normalized;
