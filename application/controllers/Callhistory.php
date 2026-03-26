@@ -234,7 +234,7 @@ class Callhistory extends CI_Controller {
 
             $call_data = $all_callsigns[$normalized_call];
             $proposed_sig = $file->organization_label;
-            $proposed_sig_info = $call_data['exch1'];
+            $proposed_sig_info = trim((string)($call_data['exch1'] ?? ''));
 
             $current_sig = trim((string)($qso->COL_SIG ?? ''));
             $current_sig_info = trim((string)($qso->COL_SIG_INFO ?? ''));
@@ -245,6 +245,15 @@ class Callhistory extends CI_Controller {
             }
 
             if ($proposed_sig === '') {
+                continue;
+            }
+
+            // Do not propose SIG updates without a membership number.
+            if ($proposed_sig_info === '') {
+                continue;
+            }
+
+            if (!$this->is_valid_sig_info_for_organization($proposed_sig, $proposed_sig_info)) {
                 continue;
             }
 
@@ -332,9 +341,19 @@ class Callhistory extends CI_Controller {
                 'qso_id' => $qso_id,
                 'station_id' => $station_id,
                 'new_sig' => $this->security->xss_clean((string)($change['new_sig'] ?? '')),
-                'new_sig_info' => $this->security->xss_clean((string)($change['new_sig_info'] ?? '')),
+                'new_sig_info' => trim($this->security->xss_clean((string)($change['new_sig_info'] ?? ''))),
             );
         }
+
+        // Membership number is required for batch SIG updates.
+        $safe_changes = array_values(array_filter($safe_changes, function($change) {
+            return trim((string)$change['new_sig']) !== '' && trim((string)$change['new_sig_info']) !== '';
+        }));
+
+        // Enforce per-organization SIG info format rules (e.g. CWOPS requires numeric membership values).
+        $safe_changes = array_values(array_filter($safe_changes, function($change) use ($file) {
+            return $this->is_valid_sig_info_for_organization($file->organization_label, $change['new_sig_info']);
+        }));
 
         if (empty($safe_changes)) {
             $this->session->set_flashdata('notice', 'No valid changes to apply.');
@@ -346,6 +365,85 @@ class Callhistory extends CI_Controller {
         $applied = $this->callhistory_model->apply_sig_backfill($safe_changes);
 
         $this->session->set_flashdata('notice', $selected_count . ' QSO(s) selected, ' . $applied . ' QSO(s) updated with SIG data.');
+        redirect('callhistory');
+    }
+
+    public function scan_remove()
+    {
+        if (strtolower($this->input->method()) !== 'post') {
+            redirect('callhistory');
+            return;
+        }
+
+        $user_id = (int)$this->session->userdata('user_id');
+        $file_id = (int)$this->input->post('file_id', TRUE);
+        $logbook_id = $this->input->post('logbook_id', TRUE);
+        $logbook_id = ($logbook_id !== '' && $logbook_id !== FALSE) ? (int)$logbook_id : NULL;
+        $start_date = trim((string)$this->input->post('start_date', TRUE));
+        if ($start_date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_date)) {
+            $this->session->set_flashdata('notice', 'Start date must be in YYYY-MM-DD format.');
+            redirect('callhistory');
+            return;
+        }
+
+        $file = $this->callhistory_model->get_for_user_by_id($user_id, $file_id);
+        if (!$file) {
+            $this->session->set_flashdata('notice', 'Call history file not found.');
+            redirect('callhistory');
+            return;
+        }
+
+        $organization_label = strtoupper(trim((string)$file->organization_label));
+        if ($organization_label === '') {
+            $this->session->set_flashdata('notice', 'Reverse SIG updates require an organization label on the selected call history file.');
+            redirect('callhistory');
+            return;
+        }
+
+        $path = FCPATH . 'uploads/callhistory/' . $user_id . '/' . $file->stored_filename;
+        if (!is_file($path) || !is_readable($path)) {
+            $this->session->set_flashdata('notice', 'Uploaded file is not readable.');
+            redirect('callhistory');
+            return;
+        }
+
+        $all_callsigns = $this->get_all_callsigns_in_file($path);
+        if (empty($all_callsigns)) {
+            $this->session->set_flashdata('notice', 'No callsigns found in the selected file.');
+            redirect('callhistory');
+            return;
+        }
+
+        $qsos = $this->callhistory_model->get_qsos_for_callsigns($user_id, array_keys($all_callsigns), $logbook_id, $start_date !== '' ? $start_date : NULL);
+        if (empty($qsos)) {
+            $this->session->set_flashdata('notice', 'No matching QSOs found for reverse update scope.');
+            redirect('callhistory');
+            return;
+        }
+
+        $changes = array();
+        foreach ($qsos as $qso) {
+            $current_sig = strtoupper(trim((string)($qso->COL_SIG ?? '')));
+            if ($current_sig !== $organization_label) {
+                continue;
+            }
+
+            $changes[] = array(
+                'qso_id' => (int)$qso->COL_PRIMARY_KEY,
+                'station_id' => (int)$qso->station_id,
+                'new_sig' => '',
+                'new_sig_info' => '',
+            );
+        }
+
+        if (empty($changes)) {
+            $this->session->set_flashdata('notice', 'No QSOs found with SIG ' . $organization_label . ' in the selected scope.');
+            redirect('callhistory');
+            return;
+        }
+
+        $applied = $this->callhistory_model->apply_sig_backfill($changes);
+        $this->session->set_flashdata('notice', count($changes) . ' QSO(s) matched SIG ' . $organization_label . ', ' . $applied . ' QSO(s) cleared.');
         redirect('callhistory');
     }
 
@@ -423,6 +521,8 @@ class Callhistory extends CI_Controller {
                 continue;
             }
 
+            $row = $this->align_row_to_header($row, $header_map);
+
             $row_callsign = $this->extract_by_map_or_index($row, $header_map, array('call', 'callsign', 'callsigns'), 0);
             $row_callsign = $this->normalize_callsign($row_callsign);
 
@@ -440,11 +540,7 @@ class Callhistory extends CI_Controller {
             }
 
             $name = $this->extract_name($row, $header_map);
-            $exch1 = $this->extract_by_map_or_index($row, $header_map, array('exch1', 'exchange1', 'exchange', 'member', 'membership'), 8);
-
-            if ($exch1 === '' && is_null($header_map)) {
-                $exch1 = $this->guess_exch1_without_header($row);
-            }
+            $exch1 = $this->extract_exch1($row, $header_map);
 
             $callsigns[$base_callsign] = array(
                 'name' => $name,
@@ -492,6 +588,8 @@ class Callhistory extends CI_Controller {
                 continue;
             }
 
+            $row = $this->align_row_to_header($row, $header_map);
+
             $row_callsign = $this->extract_by_map_or_index($row, $header_map, array('call', 'callsign', 'callsigns'), 0);
             $row_callsign = $this->normalize_callsign($row_callsign);
 
@@ -500,11 +598,7 @@ class Callhistory extends CI_Controller {
             }
 
             $name = $this->extract_name($row, $header_map);
-            $exch1 = $this->extract_by_map_or_index($row, $header_map, array('exch1', 'exchange1', 'exchange', 'member', 'membership'), 8);
-
-            if ($exch1 === '' && is_null($header_map)) {
-                $exch1 = $this->guess_exch1_without_header($row);
-            }
+            $exch1 = $this->extract_exch1($row, $header_map);
 
             $matches[] = array(
                 'file_id' => (int)$file->id,
@@ -512,7 +606,7 @@ class Callhistory extends CI_Controller {
                 'organization_label' => $file->organization_label,
                 'name' => $name,
                 'exch1' => $exch1,
-                'sig' => $file->organization_label,
+                'sig' => $this->is_valid_sig_info_for_organization($file->organization_label, $exch1) ? $file->organization_label : '',
                 'sig_info' => $exch1,
             );
         }
@@ -538,7 +632,7 @@ class Callhistory extends CI_Controller {
     private function looks_like_header($row)
     {
         foreach ($row as $column) {
-            $normalized = strtolower(preg_replace('/[^a-z0-9]/', '', (string)$column));
+            $normalized = $this->normalize_header_key($column);
             if (in_array($normalized, array('call', 'callsign', 'name', 'exch1', 'exchange1'), TRUE)) {
                 return TRUE;
             }
@@ -550,12 +644,53 @@ class Callhistory extends CI_Controller {
     {
         $map = array();
         foreach ($row as $index => $column) {
-            $key = strtolower(preg_replace('/[^a-z0-9]/', '', (string)$column));
+            $key = $this->normalize_header_key($column);
             if ($key !== '') {
                 $map[$key] = $index;
             }
         }
         return $map;
+    }
+
+    private function normalize_header_key($value)
+    {
+        $value = ltrim((string)$value, "\xEF\xBB\xBF");
+        $value = strtolower($value);
+        return preg_replace('/[^a-z0-9]/', '', $value);
+    }
+
+    private function align_row_to_header($row, $header_map)
+    {
+        if (!is_array($header_map)) {
+            return $row;
+        }
+
+        if (!array_key_exists('order', $header_map)) {
+            return $row;
+        }
+
+        $call_index = null;
+        if (array_key_exists('call', $header_map)) {
+            $call_index = (int)$header_map['call'];
+        } elseif (array_key_exists('callsign', $header_map)) {
+            $call_index = (int)$header_map['callsign'];
+        }
+
+        if ($call_index !== 1 || (int)$header_map['order'] !== 0) {
+            return $row;
+        }
+
+        // Some N1MM/CWOPS exports include an Order header column but omit that value in data rows.
+        if (count($row) < count($header_map)) {
+            $first = isset($row[0]) ? $this->normalize_callsign($row[0]) : '';
+            $second = isset($row[1]) ? $this->normalize_callsign($row[1]) : '';
+
+            if ($this->looks_like_callsign($first) && !$this->looks_like_callsign($second)) {
+                array_unshift($row, '');
+            }
+        }
+
+        return $row;
     }
 
     private function extract_by_map_or_index($row, $header_map, $candidate_keys, $default_index)
@@ -570,6 +705,34 @@ class Callhistory extends CI_Controller {
         }
 
         return isset($row[$default_index]) ? trim((string)$row[$default_index]) : '';
+    }
+
+    private function extract_exch1($row, $header_map)
+    {
+        // N1MM-style files: trust the declared header order (!!Order!!,Call,Name,Exch1,UserText,...).
+        if ($this->has_n1mm_order_header($header_map)) {
+            return $this->extract_by_map_or_index($row, $header_map, array('exch1'), 3);
+        }
+
+        $exch1 = $this->extract_by_map_or_index($row, $header_map, array('exch1', 'exchange1', 'exchange', 'member', 'membership'), 8);
+
+        if ($exch1 === '' && is_null($header_map)) {
+            $exch1 = $this->guess_exch1_without_header($row);
+        }
+
+        return $exch1;
+    }
+
+    private function has_n1mm_order_header($header_map)
+    {
+        if (!is_array($header_map)) {
+            return FALSE;
+        }
+
+        return array_key_exists('order', $header_map)
+            && (array_key_exists('call', $header_map) || array_key_exists('callsign', $header_map))
+            && array_key_exists('name', $header_map)
+            && array_key_exists('exch1', $header_map);
     }
 
     private function extract_name($row, $header_map)
@@ -638,6 +801,34 @@ class Callhistory extends CI_Controller {
         }
 
         return !$this->looks_like_name_value($value);
+    }
+
+    private function looks_like_callsign($callsign)
+    {
+        $callsign = strtoupper(trim((string)$callsign));
+        if ($callsign === '' || !preg_match('/^[A-Z0-9\/]{3,15}$/', $callsign)) {
+            return FALSE;
+        }
+
+        // Basic sanity: callsigns should contain at least one letter and one digit.
+        return preg_match('/[A-Z]/', $callsign) && preg_match('/\d/', $callsign);
+    }
+
+    private function is_valid_sig_info_for_organization($organization_label, $sig_info)
+    {
+        $organization_label = strtoupper(trim((string)$organization_label));
+        $sig_info = trim((string)$sig_info);
+
+        if ($sig_info === '') {
+            return FALSE;
+        }
+
+        // CWOPS membership numbers are numeric; skip textual values such as "CWA".
+        if ($organization_label === 'CWOPS') {
+            return ctype_digit($sig_info);
+        }
+
+        return TRUE;
     }
 
     private function normalize_callsign($callsign)

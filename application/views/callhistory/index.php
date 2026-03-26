@@ -65,47 +65,6 @@
     <div class="alert alert-info"><i class="fas fa-info-circle"></i> No blank-SIG matches found for <strong><?php echo htmlspecialchars($scan_file->original_filename); ?></strong> in the selected station location scope<?php if (!empty($selected_start_date)) { echo ' from <strong>' . htmlspecialchars($selected_start_date) . '</strong> onward'; } ?>.</div>
     <?php } ?>
 
-    <?php if (!empty($files)) { ?>
-    <div class="card mb-3">
-        <div class="card-header">
-            <strong><i class="fas fa-search-plus"></i> Scan Logbook</strong>
-        </div>
-        <div class="card-body">
-            <form method="post" action="<?php echo site_url('callhistory/scan_preview'); ?>" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label for="scan_file_id" class="form-label">Call History File</label>
-                    <select class="form-select" id="scan_file_id" name="file_id" required>
-                        <?php foreach ($files as $f) { ?>
-                        <option value="<?php echo (int)$f->id; ?>" <?php echo (isset($scan_file) && (int)$scan_file->id === (int)$f->id) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($f->file_label ?: $f->original_filename); ?>
-                            <?php if (!empty($f->organization_label)) { echo '(' . htmlspecialchars($f->organization_label) . ')'; } ?>
-                        </option>
-                        <?php } ?>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="scan_logbook_id" class="form-label">Station Location Scope</label>
-                    <select class="form-select" id="scan_logbook_id" name="logbook_id">
-                        <option value="">All my station locations</option>
-                        <?php if (!empty($logbooks)) { foreach ($logbooks as $lb) { ?>
-                        <option value="<?php echo (int)$lb->logbook_id; ?>" <?php echo (isset($selected_logbook_id) && (int)$selected_logbook_id === (int)$lb->logbook_id) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($lb->logbook_name); ?>
-                        </option>
-                        <?php } } ?>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="scan_start_date" class="form-label">Start Date</label>
-                    <input type="date" class="form-control" id="scan_start_date" name="start_date" value="<?php echo isset($selected_start_date) ? htmlspecialchars($selected_start_date) : ''; ?>">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-warning"><i class="fas fa-search"></i> Preview Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <?php } ?>
-
     <div class="card mb-3">
         <div class="card-header">
             <strong>Upload Call History File</strong>
@@ -185,7 +144,7 @@
                                             <?php echo (int)$file->is_active === 1 ? 'Disable' : 'Enable'; ?>
                                         </button>
                                     </form>
-                                    <form method="post" action="<?php echo site_url('callhistory/delete'); ?>" class="d-inline" onsubmit="return confirm('Delete this call history file?');">
+                                    <form method="post" action="<?php echo site_url('callhistory/delete'); ?>" class="d-inline js-confirm-form" data-confirm-title="Delete Call History File" data-confirm-message="Delete this call history file?" data-confirm-button="Delete">
                                         <input type="hidden" name="id" value="<?php echo (int)$file->id; ?>">
                                         <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                                     </form>
@@ -202,7 +161,207 @@
             </div>
         </div>
     </div>
+
+    <?php if (!empty($files)) { ?>
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong><i class="fas fa-search-plus"></i> Scan Logbook</strong>
+        </div>
+        <div class="card-body">
+            <form method="post" action="<?php echo site_url('callhistory/scan_preview'); ?>" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="scan_file_id" class="form-label">Call History File</label>
+                    <select class="form-select" id="scan_file_id" name="file_id" required>
+                        <?php foreach ($files as $f) { ?>
+                        <option value="<?php echo (int)$f->id; ?>" <?php echo (isset($scan_file) && (int)$scan_file->id === (int)$f->id) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($f->file_label ?: $f->original_filename); ?>
+                            <?php if (!empty($f->organization_label)) { echo '(' . htmlspecialchars($f->organization_label) . ')'; } ?>
+                        </option>
+                        <?php } ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="scan_logbook_id" class="form-label">Station Location Scope</label>
+                    <select class="form-select" id="scan_logbook_id" name="logbook_id">
+                        <option value="">All my station locations</option>
+                        <?php if (!empty($logbooks)) { foreach ($logbooks as $lb) { ?>
+                        <option value="<?php echo (int)$lb->logbook_id; ?>" <?php echo (isset($selected_logbook_id) && (int)$selected_logbook_id === (int)$lb->logbook_id) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($lb->logbook_name); ?>
+                        </option>
+                        <?php } } ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="scan_start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="scan_start_date" name="start_date" value="<?php echo isset($selected_start_date) ? htmlspecialchars($selected_start_date) : ''; ?>">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-warning"><i class="fas fa-search"></i> Preview Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-3 border-danger">
+        <div class="card-header bg-danger text-white">
+            <strong><i class="fas fa-undo"></i> Reverse Bulk SIG Update</strong>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-2">Use this to undo a previous Call History SIG fill. Cloudlog will use the selected file's organization label and clear <strong>SIG</strong> and <strong>SIG Info</strong> for matching callsigns where current SIG equals that org label.</p>
+            <form method="post" action="<?php echo site_url('callhistory/scan_remove'); ?>" class="row g-3 align-items-end js-confirm-form" data-confirm-title="Reverse Bulk SIG Update" data-confirm-message="This will clear SIG and SIG Info for matching QSOs in the selected scope. Continue?" data-confirm-button="Clear Matching SIG">
+                <div class="col-md-4">
+                    <label for="remove_file_id" class="form-label">Call History File</label>
+                    <select class="form-select" id="remove_file_id" name="file_id" required>
+                        <?php foreach ($files as $f) { ?>
+                        <option value="<?php echo (int)$f->id; ?>">
+                            <?php echo htmlspecialchars($f->file_label ?: $f->original_filename); ?>
+                            <?php if (!empty($f->organization_label)) { echo '(' . htmlspecialchars($f->organization_label) . ')'; } ?>
+                        </option>
+                        <?php } ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="remove_logbook_id" class="form-label">Station Location Scope</label>
+                    <select class="form-select" id="remove_logbook_id" name="logbook_id">
+                        <option value="">All my station locations</option>
+                        <?php if (!empty($logbooks)) { foreach ($logbooks as $lb) { ?>
+                        <option value="<?php echo (int)$lb->logbook_id; ?>">
+                            <?php echo htmlspecialchars($lb->logbook_name); ?>
+                        </option>
+                        <?php } } ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="remove_start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="remove_start_date" name="start_date">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-eraser"></i> Clear Matching SIG</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php } ?>
 </div>
+
+<div class="modal fade" id="callhistoryActionModal" tabindex="-1" aria-labelledby="callhistoryActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="callhistoryActionModalLabel">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="callhistoryActionModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="callhistoryActionModalCancelBtn" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="callhistoryActionModalConfirmBtn">Continue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function bindConfirmForms() {
+        document.querySelectorAll('form.js-confirm-form').forEach(function (form) {
+            if (form.dataset.confirmBound === '1') {
+                return;
+            }
+
+            form.dataset.confirmBound = '1';
+            form.addEventListener('submit', function (e) {
+                if (form.dataset.confirmed === '1') {
+                    form.dataset.confirmed = '0';
+                    return;
+                }
+
+                e.preventDefault();
+                window.callhistoryShowConfirm(
+                    form.dataset.confirmTitle || 'Confirm Action',
+                    form.dataset.confirmMessage || 'Continue?',
+                    form.dataset.confirmButton || 'Continue',
+                    function () {
+                        form.dataset.confirmed = '1';
+                        form.submit();
+                    }
+                );
+            });
+        });
+    }
+
+    function setFallbackDialogHandlers() {
+        window.callhistoryShowMessage = function (title, message) {
+            alert((title ? title + '\n\n' : '') + (message || ''));
+        };
+
+        window.callhistoryShowConfirm = function (title, message, confirmText, callback) {
+            var prompt = (title ? title + '\n\n' : '') + (message || '');
+            if (window.confirm(prompt) && typeof callback === 'function') {
+                callback();
+            }
+        };
+    }
+
+    function tryInitBootstrapModalHandlers() {
+        var modalEl = document.getElementById('callhistoryActionModal');
+        if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            return false;
+        }
+
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        var titleEl = document.getElementById('callhistoryActionModalLabel');
+        var bodyEl = document.getElementById('callhistoryActionModalBody');
+        var cancelBtn = document.getElementById('callhistoryActionModalCancelBtn');
+        var confirmBtn = document.getElementById('callhistoryActionModalConfirmBtn');
+        var onConfirm = null;
+
+        window.callhistoryShowMessage = function (title, message) {
+            titleEl.textContent = title || 'Notice';
+            bodyEl.textContent = message || '';
+            confirmBtn.classList.add('d-none');
+            cancelBtn.textContent = 'Close';
+            modal.show();
+        };
+
+        window.callhistoryShowConfirm = function (title, message, confirmText, callback) {
+            titleEl.textContent = title || 'Confirm Action';
+            bodyEl.textContent = message || '';
+            cancelBtn.textContent = 'Cancel';
+            confirmBtn.textContent = confirmText || 'Continue';
+            confirmBtn.classList.remove('d-none');
+            onConfirm = typeof callback === 'function' ? callback : null;
+            modal.show();
+        };
+
+        confirmBtn.addEventListener('click', function () {
+            if (onConfirm) {
+                onConfirm();
+            }
+            onConfirm = null;
+            modal.hide();
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            onConfirm = null;
+        });
+
+        return true;
+    }
+
+    setFallbackDialogHandlers();
+    bindConfirmForms();
+
+    function initDialogs() {
+        tryInitBootstrapModalHandlers();
+    }
+
+    if (document.readyState === 'complete') {
+        initDialogs();
+    } else {
+        window.addEventListener('load', initDialogs, { once: true });
+    }
+})();
+</script>
 
 <?php if (!empty($preview)) { ?>
 <script>
@@ -278,7 +437,9 @@
 
             if (selectedChanges.length === 0) {
                 e.preventDefault();
-                alert('No rows selected.');
+                if (typeof window.callhistoryShowMessage === 'function') {
+                    window.callhistoryShowMessage('No rows selected', 'Please select at least one row before applying changes.');
+                }
                 return;
             }
 
