@@ -7,6 +7,29 @@ class Workabledxcc_model extends CI_Model
     private $workedCache = array();
 
     /**
+     * Normalize DXpedition callsigns for display.
+     * Placeholder values like F/H and M/S are rendered as "-".
+     *
+     * @param string|null $callsign
+     * @return string
+     */
+    public function normalizeDxpedCallsign($callsign)
+    {
+        $normalized = strtoupper(trim((string) $callsign));
+
+        if ($normalized === '') {
+            return '-';
+        }
+
+        // Filter out placeholder/non-callsign patterns such as F/H, M/S.
+        if (preg_match('/^[A-Z]\/[A-Z]$/', $normalized)) {
+            return '-';
+        }
+
+        return $normalized;
+    }
+
+    /**
      * Batch DXCC lookup for multiple callsigns
      * @param array $callsigns Array of callsigns
      * @param array $dates Array of dates corresponding to callsigns
@@ -362,8 +385,13 @@ class Workabledxcc_model extends CI_Model
         }
 
         $thisWeekRecords = [];
-        $startOfWeek = (new DateTime())->setISODate((new DateTime())->format('o'), (new DateTime())->format('W'), 1);
-        $endOfWeek = (clone $startOfWeek)->modify('+6 days');
+        $now = new DateTime();
+        $startOfWeek = (clone $now)
+            ->setISODate((int) $now->format('o'), (int) $now->format('W'), 1)
+            ->setTime(0, 0, 0);
+        $endOfWeek = (clone $startOfWeek)
+            ->modify('+6 days')
+            ->setTime(23, 59, 59);
 
         // Get Date format
         if ($this->session->userdata('user_date_format')) {
@@ -375,11 +403,11 @@ class Workabledxcc_model extends CI_Model
         // First pass: filter records for this week
         $weekRecords = array();
         foreach ($data as $record) {
-            $startDate = new DateTime($record['0']);
-            $endDate = new DateTime($record['1']);
+            $startDate = (new DateTime($record['0']))->setTime(0, 0, 0);
+            $endDate = (new DateTime($record['1']))->setTime(23, 59, 59);
 
-            if (($startDate >= $startOfWeek && $startDate <= $endOfWeek) || 
-                ($endDate >= $startOfWeek && $endDate <= $endOfWeek)) {
+            // Include any DXpedition overlapping this calendar week.
+            if ($startDate <= $endOfWeek && $endDate >= $startOfWeek) {
                 $weekRecords[] = $record;
             }
         }
@@ -399,13 +427,14 @@ class Workabledxcc_model extends CI_Model
 
         // Process results
         foreach ($weekRecords as $index => $record) {
-            $endDate = new DateTime($record['1']);
-            $now = new DateTime();
-            $interval = $now->diff($endDate);
-            $daysLeft = $interval->days;
+            $endDate = (new DateTime($record['1']))->setTime(23, 59, 59);
+            $daysLeft = (int) $now->diff($endDate)->format('%r%a');
 
-            $daysLeft = ($daysLeft == 0) ? "Last day" : $daysLeft . " days left";
-            $record['daysLeft'] = $daysLeft;
+            if ($daysLeft < 0) {
+                $record['daysLeft'] = "Ended";
+            } else {
+                $record['daysLeft'] = ($daysLeft === 0) ? "Last day" : $daysLeft . " days left";
+            }
 
             $oldStartDate = DateTime::createFromFormat('Y-m-d', $record['0']);
             $record['startDate'] = $oldStartDate->format($custom_date_format);
@@ -424,6 +453,7 @@ class Workabledxcc_model extends CI_Model
             $record['workedBefore'] = $worked['workedBefore'];
             $record['confirmed'] = $worked['confirmed'];
             $record['workedViaSatellite'] = $worked['workedViaSatellite'];
+            $record['callsign'] = $this->normalizeDxpedCallsign($record['callsign'] ?? '');
 
             $thisWeekRecords[] = $record;
         }
