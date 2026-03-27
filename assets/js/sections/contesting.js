@@ -311,15 +311,12 @@ $('#exchangetype').change(function () {
 
 function setSession(formdata) {
     formdata.set('copyexchangeto',$("#copyexchangeto option:selected").index());
-	$.ajax({
+	return $.ajax({
 		url: base_url + 'index.php/contesting/setSession',
 		type: 'post',
 		data: formdata,
 		processData: false,
 		contentType: false,
-		success: function (data) {
-
-		}
 	});
 }
 
@@ -356,7 +353,11 @@ $(function () {
 
 // checked if worked before after blur
 $("#callsign").blur(function () {
-	        checkIfWorkedBefore();
+		 checkIfWorkedBefore();
+		// Restore full logbook table once user moves away from callsign field
+		if ($.fn.DataTable.isDataTable('.qsotable')) {
+			$('.qsotable').DataTable().search('').draw();
+		}
 });
 
 // Here we capture keystrokes to execute functions
@@ -488,6 +489,9 @@ $("#callsign").keyup(function () {
 	else if (call.length <= 2) {
 		$('.callsign-suggestions').text("");
 		renderCallhistoryPanel([]);
+		if ($.fn.DataTable.isDataTable('.qsotable')) {
+			$('.qsotable').DataTable().search('').draw();
+		}
 	}
 });
 
@@ -548,6 +552,7 @@ async function reset_log_fields() {
 	$('#callsign_info').text("");
 	renderCallhistoryPanel([]);
 
+	sessiondata = await getSession();
 	await refresh_qso_table(sessiondata);
 	var qTable = $('.qsotable').DataTable();
 	qTable.search('').draw();
@@ -741,15 +746,17 @@ function logQso() {
 				$('#exch_rcvd').val("");
 				$('#exch_gridsquare_r').val("");
 				$('#exch_serial_r').val("");
+				$('.callsign-suggestions').text("");
+				renderCallhistoryPanel([]);
                 if (manual) {
                   $("#start_time").focus().select();
                 } else {
                   $("#callsign").focus();
                 }
-				setSession(formdata);
-				
-				// try setting session data
-				console.log(sessiondata);
+				await setSession(formdata);
+
+				// Re-fetch session so table shows all QSOs from session start, not just last minute
+				sessiondata = await getSession();
 				await refresh_qso_table(sessiondata);
 				var qTable = $('.qsotable').DataTable();
 				qTable.search('').order([0, 'desc']).draw();

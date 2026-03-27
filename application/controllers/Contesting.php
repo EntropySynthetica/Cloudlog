@@ -27,6 +27,9 @@ class Contesting extends CI_Controller {
         $data['modes'] = $this->modes->active();
 		$data['contestnames'] = $this->contesting_model->getActivecontests();
 		$data['bands'] = $this->bands->get_user_bands_for_qso_entry();
+		$data['active_station_id'] = $this->stations->find_active();
+		$data['contest_session'] = $this->contesting_model->getSession();
+		$data['station_profile'] = $this->stations->all_of_user();
 
 		$this->load->library('form_validation');
 

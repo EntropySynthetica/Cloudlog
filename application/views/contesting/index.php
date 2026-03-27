@@ -1,6 +1,7 @@
 <div class="container qso_panel contesting">
     <div class="float-end">
         <button type="button" class="btn btn-sm btn-primary me-2" onclick="openBandmap()" title="Open DX Cluster Bandmap"><i class="fas fa-chart-line"></i> <?php echo lang('menu_bandmap'); ?></button>
+        <button type="button" class="btn btn-sm btn-success me-2" data-bs-toggle="modal" data-bs-target="#cabrilloExportModal" title="Export contest log as Cabrillo file"><i class="fas fa-download"></i> Export Cabrillo</button>
         <button type="button" class="btn btn-sm btn-warning" onclick="reset_contest_session()"><i class="fas fa-sync-alt"></i> <?php echo lang('contesting_button_reset_contest_session'); ?></button>
     </div>
     <h2 style="display:inline"><?php echo lang('contesting_page_title'); ?> </h2> <?php echo ($_GET['manual'] == 0 ? " <span style='display:inline; cursor: pointer;' class='align-text-top badge text-bg-success' onclick=\"window.location.href='" . site_url('contesting') . "?manual=1'\" title='Switch to POST mode'>LIVE</span>" : " <span style='display:inline; cursor: pointer;' class='align-text-top badge text-bg-danger' onclick=\"window.location.href='" . site_url('contesting') . "?manual=0'\" title='Switch to LIVE mode'>POST</span>");  ?>
@@ -263,3 +264,215 @@
     }
 </script>
 
+<!-- Cabrillo Export Modal -->
+<div class="modal fade" id="cabrilloExportModal" tabindex="-1" aria-labelledby="cabrilloExportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cabrilloExportModalLabel"><i class="fas fa-download"></i> Export Cabrillo Log</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?php echo site_url('cabrillo/export'); ?>" method="post">
+            <div class="modal-body">
+                <input type="hidden" name="station_id" value="<?php echo htmlspecialchars($active_station_id); ?>">
+                <input type="hidden" name="contestid" value="<?php echo htmlspecialchars($contest_session ? $contest_session->contestid : ''); ?>">
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label fw-semibold">Contest:</label>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" readonly value="<?php echo htmlspecialchars($contest_session ? $contest_session->contestid : 'No active contest session'); ?>">
+                        <?php if (!$contest_session): ?>
+                        <div class="form-text text-danger">No active contest session. Start a contest first on this page.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_from">Date From:</label>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="cab_from" name="contestdatesfrom" value="<?php echo date('Y-m-d'); ?>">
+                    </div>
+                    <label class="col-md-2 col-form-label" for="cab_to">Date To:</label>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="cab_to" name="contestdatesto" value="<?php echo date('Y-m-d'); ?>">
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categoryoperator"><?php echo lang('export_cabrillo_cat_operator'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categoryoperator" name="categoryoperator">
+                            <option value="SINGLE-OP"><?php echo lang('export_cabrillo_cat_operator_single_op'); ?></option>
+                            <option value="MULTI-OP"><?php echo lang('export_cabrillo_cat_operator_multi_op'); ?></option>
+                            <option value="CHECKLOG"><?php echo lang('export_cabrillo_cat_operator_checklog'); ?></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categoryassisted"><?php echo lang('export_cabrillo_cat_assisted'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categoryassisted" name="categoryassisted">
+                            <option value="NON-ASSISTED"><?php echo lang('export_cabrillo_cat_assisted_not_ass'); ?></option>
+                            <option value="ASSISTED"><?php echo lang('export_cabrillo_cat_assisted_ass'); ?></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categoryband"><?php echo lang('export_cabrillo_cat_band'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categoryband" name="categoryband">
+                            <option value="ALL"><?php echo lang('general_word_all'); ?></option>
+                            <option value="160M">160 M</option>
+                            <option value="80M">80 M</option>
+                            <option value="40M">40 M</option>
+                            <option value="20M">20 M</option>
+                            <option value="15M">15 M</option>
+                            <option value="10M">10 M</option>
+                            <option value="6M">6 M</option>
+                            <option value="4M">4 M</option>
+                            <option value="2M">2 M</option>
+                            <option value="222">222 MHz (1.25 M)</option>
+                            <option value="432">432 MHz (70 CM)</option>
+                            <option value="902">902 MHz (33 CM)</option>
+                            <option value="1.2G">1.2 GHz</option>
+                            <option value="2.3G">2.3 GHz</option>
+                            <option value="3.4G">3.4 GHz</option>
+                            <option value="5.7G">5.7 GHz</option>
+                            <option value="10G">10 GHz</option>
+                            <option value="24G">24 GHz</option>
+                            <option value="47G">47 GHz</option>
+                            <option value="75G">75 GHz</option>
+                            <option value="122G">122 GHz</option>
+                            <option value="134G">134 GHz</option>
+                            <option value="241G">241 GHz</option>
+                            <option value="Light"><?php echo lang('general_word_light'); ?></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categorymode"><?php echo lang('export_cabrillo_cat_mode'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categorymode" name="categorymode">
+                            <option value="MIXED">MIXED</option>
+                            <option value="CW">CW</option>
+                            <option value="DIGI">DIGI</option>
+                            <option value="FM">FM</option>
+                            <option value="RTTY">RTTY</option>
+                            <option value="SSB">SSB</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categorypower"><?php echo lang('export_cabrillo_cat_power'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categorypower" name="categorypower">
+                            <option value="LOW">LOW</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="QRP">QRP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categorystation"><?php echo lang('export_cabrillo_cat_station'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categorystation" name="categorystation">
+                            <option value="FIXED">FIXED</option>
+                            <option value="DISTRIBUTED">DISTRIBUTED</option>
+                            <option value="MOBILE">MOBILE</option>
+                            <option value="PORTABLE">PORTABLE</option>
+                            <option value="ROVER">ROVER</option>
+                            <option value="ROVER-LIMITED">ROVER-LIMITED</option>
+                            <option value="ROVER-UNLIMITED">ROVER-UNLIMITED</option>
+                            <option value="EXPEDITION">EXPEDITION</option>
+                            <option value="HQ">HQ</option>
+                            <option value="SCHOOL">SCHOOL</option>
+                            <option value="EXPLORER">EXPLORER</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categorytransmitter"><?php echo lang('export_cabrillo_cat_transmitter'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categorytransmitter" name="categorytransmitter">
+                            <option value="ONE">ONE</option>
+                            <option value="TWO">TWO</option>
+                            <option value="LIMITED">LIMITED</option>
+                            <option value="UNLIMITED">UNLIMITED</option>
+                            <option value="SWL">SWL</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categoryoverlay"><?php echo lang('export_cabrillo_cat_overlay'); ?>:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categoryoverlay" name="categoryoverlay">
+                            <option value="">None / Not Applicable</option>
+                            <option value="CLASSIC">CLASSIC</option>
+                            <option value="ROOKIE">ROOKIE</option>
+                            <option value="TB-WIRES">TB-WIRES</option>
+                            <option value="YOUTH">YOUTH</option>
+                            <option value="NOVICE-TECH">NOVICE-TECH</option>
+                            <option value="YL">YL</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_categorytime">Category Time:</label>
+                    <div class="col-md-8">
+                        <select class="form-select" id="cab_categorytime" name="categorytime">
+                            <option value="">Not specified</option>
+                            <option value="6-HOURS">6-HOURS</option>
+                            <option value="8-HOURS">8-HOURS</option>
+                            <option value="12-HOURS">12-HOURS</option>
+                            <option value="24-HOURS">24-HOURS</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_location">Location:
+                        <span tabindex="0" data-bs-toggle="tooltip" title="Required for ARRL, CQ, IARU-HF, RSGB-IOTA and RDXC contests. Use your ARRL/RAC section abbreviation (e.g. CT) for US/Canada, DX for foreign stations, Island Name for RSGB-IOTA, or RDA Number for RDXC."><i class="fas fa-info-circle"></i></span>
+                    </label>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="cab_location" name="location" placeholder="e.g. CT or DX">
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_operators"><?php echo lang('export_cabrillo_operators'); ?>:</label>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="cab_operators" name="operators" placeholder="Space-separated callsigns">
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_club">Club:</label>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="cab_club" name="club">
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-md-4 col-form-label" for="cab_soapbox"><?php echo lang('export_cabrillo_soapbox'); ?>:</label>
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="cab_soapbox" name="soapbox">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Export Cabrillo</button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
