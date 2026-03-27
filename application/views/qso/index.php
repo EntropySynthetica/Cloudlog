@@ -846,16 +846,45 @@
 
       <div class="card previous-qsos">
         <div class="card-header">
-          <h4 class="card-title" id="timesWorked" style="font-size: 16px; font-weight: bold;"><?php echo lang('qso_title_previous_contacts'); ?></h4>
+          <ul class="nav nav-tabs card-header-tabs" id="qsoRightTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="previous-contacts-tab" data-bs-toggle="tab" data-bs-target="#previous-contacts-pane" type="button" role="tab" aria-controls="previous-contacts-pane" aria-selected="true">
+                <?php echo lang('qso_title_previous_contacts'); ?>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="dxcc-summary-tab" data-bs-toggle="tab" data-bs-target="#dxcc-summary-pane" type="button" role="tab" aria-controls="dxcc-summary-pane" aria-selected="false">
+                DXCC Summary
+              </button>
+            </li>
+          </ul>
         </div>
 
-        <div id="partial_view" style="font-size: 0.95rem;"></div>
+        <div class="card-body">
+          <div class="tab-content" id="qsoRightTabContent">
+            <!-- Previous Contacts Tab -->
+            <div class="tab-pane fade show active" id="previous-contacts-pane" role="tabpanel" aria-labelledby="previous-contacts-tab">
+              <div id="qso-callhistory-inline" class="px-0 pt-2 pb-1 border-bottom" style="display: none;">
+                <div id="qso-callhistory-results"></div>
+              </div>
 
-        <div id="qso-last-table" hx-get="<?php echo site_url('/qso/component_past_contacts'); ?>" hx-trigger="load, every 5s">
+              <div id="partial_view" style="font-size: 0.95rem;"></div>
 
+              <div id="qso-last-table" hx-get="<?php echo site_url('/qso/component_past_contacts'); ?>" hx-trigger="load, every 5s">
+
+              </div>
+              <small class="mt-0.5 d-block"><?php echo lang('qso_previous_max_shown'); ?></small>
+            </div>
+
+            <!-- DXCC Summary Tab -->
+            <div class="tab-pane fade" id="dxcc-summary-pane" role="tabpanel" aria-labelledby="dxcc-summary-tab">
+              <div id="dxcc-summary-content">
+                <!-- DXCC Summary content will be loaded here -->
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <small class="mt-0.5" style="float: right;"><?php echo lang('qso_previous_max_shown'); ?></small>
     </div>
   </div>
 
@@ -881,6 +910,30 @@
         <button type="button" class="btn btn-warning" id="confirmLeaveQso">
           <i class="fas fa-sign-out-alt me-1"></i>Leave Page
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Callsign Lookup Overwrite Approval Modal -->
+<div class="modal fade" id="callsignOverwriteModal" tabindex="-1" aria-labelledby="callsignOverwriteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="callsignOverwriteModalLabel">
+          <i class="fas fa-user-edit me-2"></i>Update Existing Fields?
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">The corrected callsign returned different details from lookup sources and your previous QSO history.</p>
+        <p class="mb-3">Choose which existing fields you want to replace:</p>
+        <div id="callsignOverwriteConflicts"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="callsignOverwriteKeepExisting">Keep Existing</button>
+        <button type="button" class="btn btn-primary" id="callsignOverwriteReplaceSelected">Replace Selected</button>
+        <button type="button" class="btn btn-success" id="callsignOverwriteReplaceAll">Replace All</button>
       </div>
     </div>
   </div>

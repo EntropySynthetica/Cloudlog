@@ -14,6 +14,8 @@ class Contesting_model extends CI_Model {
         $contestid = $qsoarray[2];
         $date = DateTime::createFromFormat('d-m-Y H:i:s', $qsoarray[0]);
         if ($date == false) $date = DateTime::createFromFormat('d-m-Y H:i', $qsoarray[0]);
+        // If date still can't be parsed fall back to start of today (UTC) to show all today's QSOs
+        if ($date == false) $date = new DateTime('today', new DateTimeZone('UTC'));
         $date = $date->format('Y-m-d H:i:s');
 
         $sql = "SELECT date_format(col_time_on, '%d-%m-%Y %H:%i:%s') as col_time_on, col_call, col_band, col_mode,
@@ -91,7 +93,15 @@ class Contesting_model extends CI_Model {
 		$qso = "";
 
 		if ($this->input->post('callsign')) {
-			$qso = xss_clean($this->input->post('start_date', true)) . ' ' . xss_clean($this->input->post('start_time', true)) . ',' . xss_clean($this->input->post('callsign', true)) . ',' . xss_clean($this->input->post('contestname', true));
+			// In LIVE mode start_date/start_time are disabled fields and not submitted, use server UTC time
+			$start_date = xss_clean($this->input->post('start_date', true));
+			$start_time = xss_clean($this->input->post('start_time', true));
+			if (empty($start_date) || empty($start_time)) {
+				$timestamp = gmdate('d-m-Y H:i:s');
+			} else {
+				$timestamp = $start_date . ' ' . $start_time;
+			}
+			$qso = $timestamp . ',' . xss_clean($this->input->post('callsign', true)) . ',' . xss_clean($this->input->post('contestname', true));
 		}
 
 		$data = array(
@@ -120,7 +130,13 @@ class Contesting_model extends CI_Model {
 		$result = $querydata->row();
 
 		if ($result->qso != "") {
-			$data['qso'] = $result->qso;
+			// Only keep the existing qso marker if its timestamp is valid to avoid persisting bad data
+			$existing_parts = explode(',', $result->qso);
+			$existing_date = DateTime::createFromFormat('d-m-Y H:i:s', $existing_parts[0]);
+			if ($existing_date == false) $existing_date = DateTime::createFromFormat('d-m-Y H:i', $existing_parts[0]);
+			if ($existing_date !== false) {
+				$data['qso'] = $result->qso;
+			}
 		}
 
 		$this->updateSession($data, $station_id);

@@ -636,9 +636,7 @@ class Awards extends CI_Controller
         $filters = $this->pota_filters_from_request();
         $this->load->model('pota');
         $rows = $this->pota->fetch_qsos($filters);
-        $refs = [];
-        foreach ($rows as $r) { $refs[$r->COL_POTA_REF] = true; }
-        $refs = array_keys($refs);
+        $refs = $this->pota->collect_refs_from_rows($rows);
         $data['parks'] = $this->pota->get_parks_meta($refs);
         $this->load->view('awards/pota/components/map', $data);
     }
@@ -1285,6 +1283,13 @@ class Awards extends CI_Controller
         $this->load->model('modes');
 
         $type = str_replace('"', "", $this->security->xss_clean($this->input->get("type")));
+        $type = trim((string)$type);
+
+        if ($type === '') {
+            $this->session->set_flashdata('notice', 'Invalid SIG type requested.');
+            redirect('awards/sig');
+            return;
+        }
 
         // Parse filters
         $filters = array();
@@ -1298,17 +1303,24 @@ class Awards extends CI_Controller
             $filters['confirmed_only'] = false;
         }
 
-        $data['sig_all'] = $this->sig->get_all($type, $filters);
         $data['type'] = $type;
         $data['filters'] = $filters;
+        $data['sig_all'] = null;
+        $data['worked_refs'] = 0;
+        $data['confirmed_refs'] = 0;
+        $data['bands'] = array();
+        $data['modes'] = array();
 
-        // Get stats for this SIG type
-        $data['worked_refs'] = $this->sig->get_worked_sig_refs($type, $filters);
-        $data['confirmed_refs'] = $this->sig->get_confirmed_sig_refs($type, $filters);
-
-        // Get available bands and modes
-        $data['bands'] = $this->bands->get_worked_bands('sig');
-        $data['modes'] = $this->sig->get_worked_modes();
+        try {
+            $data['sig_all'] = $this->sig->get_all($type, $filters);
+            $data['worked_refs'] = $this->sig->get_worked_sig_refs($type, $filters);
+            $data['confirmed_refs'] = $this->sig->get_confirmed_sig_refs($type, $filters);
+            $data['bands'] = $this->bands->get_worked_bands('sig');
+            $data['modes'] = $this->sig->get_worked_modes();
+        } catch (Exception $e) {
+            log_message('error', 'Awards::sig_details failed for type ' . $type . ': ' . $e->getMessage());
+            $this->session->set_flashdata('notice', 'Unable to load SIG details at the moment. Please try again.');
+        }
 
         $data['filter_summary'] = $this->_sig_filter_summary($filters);
 

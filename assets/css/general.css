@@ -703,10 +703,12 @@ div#station_logbooks_linked_table_paginate {
 
 .qso_panel .dxccsummary {
 	margin-bottom: 10px;
+	display: none; /* Hidden as DXCC Summary is now in a tab */
 }
 
 .qso_panel .dxccsummaryheader {
 	cursor: pointer;
+	display: none; /* Hidden as DXCC Summary is now in a tab */
 }
 
 .table-striped tbody>tr.activeRow {

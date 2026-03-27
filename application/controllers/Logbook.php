@@ -1267,6 +1267,82 @@ class Logbook extends CI_Controller
 		return 0;
 	}
 
+	/* Contest-specific bearing calculation */
+	function contest_bearing()
+	{
+		$locator = xss_clean($this->input->post('grid'));
+		$my_grid = xss_clean($this->input->post('my_grid'));
+		$this->load->library('Qra');
+
+		if ($locator != null && $my_grid != null && strlen($my_grid) >= 4) {
+			// Get bearing using the get_bearing function which returns just the bearing
+			$bearing = $this->qra->get_bearing($my_grid, $locator);
+			if ($bearing) {
+				echo $bearing;
+			}
+		}
+		return "";
+	}
+
+	/* Contest-specific distance calculation */
+	function contest_distance()
+	{
+		$locator = xss_clean($this->input->post('grid'));
+		$my_grid = xss_clean($this->input->post('my_grid'));
+		$this->load->library('Qra');
+
+		if ($locator != null && $my_grid != null && strlen($my_grid) >= 4) {
+			$distance = $this->qra->distance($my_grid, $locator, 'K');
+			echo $distance;
+		}
+		return 0;
+	}
+
+	/* Contest-specific callsign bearing and distance lookup */
+	function contest_callsign_qra()
+	{
+		$this->load->model('user_model');
+		if ($this->user_model->validate_session() == 0) {
+			return;
+		}
+		$this->load->model('logbook_model');
+
+		$callsign = xss_clean($this->input->post('callsign'));
+		$my_grid = xss_clean($this->input->post('my_grid'));
+		$this->load->library('Qra');
+
+		if ($callsign != null && $my_grid != null && strlen($my_grid) >= 4) {
+			// Get the gridsquare for this callsign from the database or callbook
+			$callsign_qra = $this->logbook_model->call_qra($callsign);
+			
+			$return = array(
+				'qra' => $callsign_qra,
+				'bearing' => '',
+				'distance' => 0
+			);
+
+			if ($callsign_qra && strlen($callsign_qra) >= 4) {
+				// Calculate from logged gridsquare
+				$return['bearing'] = $this->qra->get_bearing($my_grid, $callsign_qra);
+				$return['distance'] = $this->qra->distance($my_grid, $callsign_qra, 'K');
+			} else {
+				// Fall back to DXCC lat/lon for the callsign prefix
+				$dxcc = $this->logbook_model->check_dxcc_table(strtoupper($callsign), date('Y-m-d'));
+				if ($dxcc && isset($dxcc[4]) && isset($dxcc[5]) && $dxcc[4] != '' && $dxcc[5] != '') {
+					$my_latlng = qra2latlong($my_grid);
+					if ($my_latlng !== false) {
+						$return['bearing'] = get_bearing($my_latlng[0], $my_latlng[1], (float)$dxcc[4], (float)$dxcc[5]);
+						$return['distance'] = distance($my_latlng[0], $my_latlng[1], (float)$dxcc[4], (float)$dxcc[5], 'K');
+					}
+				}
+			}
+
+			header('Content-Type: application/json');
+			echo json_encode($return);
+		}
+		return;
+	}
+
 	/* return station bearing */
 	function bearing($locator, $unit = 'M', $station_id = null)
 	{

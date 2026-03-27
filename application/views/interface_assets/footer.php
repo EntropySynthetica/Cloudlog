@@ -9,6 +9,10 @@
     var icon_dot_url = "<?php echo base_url(); ?>assets/images/dot.png";
     // get the user_callsign from session
     var my_call = "<?php echo $this->session->userdata('user_callsign'); ?>".toUpperCase();
+    // get the user_gridsquare from session or view data
+    var my_gridsquare = "<?php echo isset($my_gridsquare) ? $my_gridsquare : $this->session->userdata('user_locator'); ?>";
+    // get the user's measurement preference
+    var measurement_base = "<?php echo $this->session->userdata('user_measurement_base') ? $this->session->userdata('user_measurement_base') : $this->config->item('measurement_base'); ?>";
 </script>
 
 <script>
@@ -35,6 +39,7 @@
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/leaflet.js"></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/Control.FullScreen.js"></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/L.Maidenhead.qrb.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/L.Terminator.js"></script>
 <?php if ($this->uri->segment(1) == "activators") { ?>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/leaflet/L.Maidenhead.activators.js"></script>
 <?php } ?>
@@ -1002,6 +1007,71 @@ $(document).ready(function() {
                 },
             });
 
+            var markersLayer = L.layerGroup().addTo(map);
+
+            var baseLayers = {
+                "Map": layer
+            };
+            var overlays = {
+                "QSOs": markersLayer
+            };
+
+            var greylineEnabled = <?php echo (isset($dashboard_map_greyline) && $dashboard_map_greyline) ? 'true' : 'false'; ?>;
+            var greyline = L.terminator({
+                color: '#4a6fa5',
+                fillColor: '#001f3f',
+                fillOpacity: 0.18,
+                weight: 1.5,
+                interactive: false
+            });
+            var greylineIntervalId = null;
+
+            function refreshGreyline() {
+                greyline.setTime(new Date());
+            }
+
+            function startGreylineUpdates() {
+                if (greylineIntervalId !== null) {
+                    return;
+                }
+                refreshGreyline();
+                greylineIntervalId = setInterval(refreshGreyline, 60000);
+            }
+
+            function stopGreylineUpdates() {
+                if (greylineIntervalId !== null) {
+                    clearInterval(greylineIntervalId);
+                    greylineIntervalId = null;
+                }
+            }
+
+            overlays["Greyline"] = greyline;
+
+            if (greylineEnabled) {
+                greyline.addTo(map);
+                startGreylineUpdates();
+            }
+
+            L.control.layers(baseLayers, overlays, {
+                collapsed: true
+            }).addTo(map);
+
+            map.on('overlayadd', function(event) {
+                if (event.layer === greyline) {
+                    startGreylineUpdates();
+                }
+            });
+
+            map.on('overlayremove', function(event) {
+                if (event.layer === greyline) {
+                    stopGreylineUpdates();
+                }
+            });
+
+            map.on('unload', function() {
+                stopGreylineUpdates();
+            });
+
             /*var printer = L.easyPrint({
                 sizeModes: ['Current'],
                 filename: 'myMap',
@@ -1027,16 +1097,21 @@ $(document).ready(function() {
                                         html: `<i class="${iconsList.qso.icon}" style="color:${iconsList.qso.color}"></i>`
                                     });
 
-                                    L.marker([marker.lat, marker.lng], {
+                                    markers[key] = L.marker([marker.lat, marker.lng], {
                                             icon: icon
                                         })
-                                        .addTo(map)
+                                        .addTo(markersLayer)
                                         .bindPopup(html);
                                 }
                             });
                             Object.keys(markers).forEach(key => {
                                 if (!newMarkers[key]) {
-                                    map.removeLayer(markers[key]);
+                                    markersLayer.removeLayer(markers[key]);
+                                }
+                            });
+                            Object.keys(markers).forEach(key => {
+                                if (newMarkers[key]) {
+                                    newMarkers[key] = markers[key];
                                 }
                             });
                             markers = newMarkers;
@@ -1814,7 +1889,7 @@ $(document).ready(function() {
 
         <?php if ($this->session->userdata('user_pota_lookup') == 1) { ?>
             $('#pota_ref').change(function() {
-                var pota = $('#pota_ref').val();
+                var pota = ($('#pota_ref').val() || '').split(',')[0].trim();
                 if (pota.length > 0) {
                     $.ajax({
                         url: base_url + 'index.php/qso/get_pota_info',

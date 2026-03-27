@@ -1,4 +1,174 @@
 var lastCallsignUpdated=""
+var callsignLookupRequestId = 0;
+
+function hasFieldValue(value) {
+	return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function normalizeFieldValue(value) {
+	return String(value ?? "").trim();
+}
+
+function shouldReplaceLookupField($field, incomingValue, fieldKey, approval) {
+	if (!hasFieldValue(incomingValue)) {
+		return false;
+	}
+
+	var currentValue = normalizeFieldValue($field.val());
+	var nextValue = normalizeFieldValue(incomingValue);
+
+	if (!hasFieldValue(currentValue) || currentValue === nextValue) {
+		return true;
+	}
+
+	if (!approval) {
+		return false;
+	}
+
+	if (approval.replaceAll) {
+		return true;
+	}
+
+	return approval.replaceSelected.has(fieldKey);
+}
+
+function getLookupOverwriteConflicts(result) {
+	var conflicts = [];
+
+	var fieldMappings = [
+		{ key: 'name', label: 'Name', selector: '#name', value: result.callsign_name },
+		{ key: 'qth', label: 'QTH', selector: '#qth', value: result.callsign_qth },
+		{ key: 'locator', label: 'Grid', selector: '#locator', value: result.callsign_qra },
+		{ key: 'qsl_via', label: 'QSL Via', selector: '#qsl_via', value: result.qsl_manager }
+	];
+
+	fieldMappings.forEach(function(field) {
+		var incomingValue = normalizeFieldValue(field.value);
+		if (!hasFieldValue(incomingValue)) {
+			return;
+		}
+
+		var currentValue = normalizeFieldValue($(field.selector).val());
+		if (hasFieldValue(currentValue) && currentValue !== incomingValue) {
+			conflicts.push({
+				key: field.key,
+				label: field.label,
+				currentValue: currentValue,
+				nextValue: incomingValue
+			});
+		}
+	});
+
+	return conflicts;
+}
+
+function showLookupOverwriteModal(conflicts) {
+	return new Promise(function(resolve) {
+		if (!conflicts || conflicts.length === 0) {
+			resolve({ replaceAll: false, replaceSelected: new Set() });
+			return;
+		}
+
+		var modalElement = document.getElementById('callsignOverwriteModal');
+		var conflictList = document.getElementById('callsignOverwriteConflicts');
+		var keepExistingBtn = document.getElementById('callsignOverwriteKeepExisting');
+		var replaceSelectedBtn = document.getElementById('callsignOverwriteReplaceSelected');
+		var replaceAllBtn = document.getElementById('callsignOverwriteReplaceAll');
+
+		if (!modalElement || !conflictList || typeof bootstrap === 'undefined') {
+			resolve({ replaceAll: false, replaceSelected: new Set() });
+			return;
+		}
+
+		conflictList.innerHTML = '';
+		conflicts.forEach(function(conflict) {
+			var escapedCurrent = $('<div/>').text(conflict.currentValue).html();
+			var escapedNext = $('<div/>').text(conflict.nextValue).html();
+			var itemHtml = '' +
+				'<div class="form-check mb-2">' +
+					'<input class="form-check-input callsign-overwrite-choice" type="checkbox" id="overwrite_' + conflict.key + '" data-field-key="' + conflict.key + '" checked>' +
+					'<label class="form-check-label" for="overwrite_' + conflict.key + '">' +
+						'<strong>' + conflict.label + '</strong><br>' +
+						'<small class="text-muted">Current: ' + escapedCurrent + '</small><br>' +
+						'<small>Suggested: ' + escapedNext + '</small>' +
+					'</label>' +
+				'</div>';
+			conflictList.insertAdjacentHTML('beforeend', itemHtml);
+		});
+
+		var modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+		var resolved = false;
+
+		function finalizeDecision(decision) {
+			if (resolved) {
+				return;
+			}
+			resolved = true;
+			resolve(decision);
+			modalInstance.hide();
+		}
+
+		keepExistingBtn.onclick = function() {
+			finalizeDecision({ replaceAll: false, replaceSelected: new Set() });
+		};
+
+		replaceSelectedBtn.onclick = function() {
+			var selected = new Set();
+			document.querySelectorAll('.callsign-overwrite-choice:checked').forEach(function(input) {
+				selected.add(input.getAttribute('data-field-key'));
+			});
+			finalizeDecision({ replaceAll: false, replaceSelected: selected });
+		};
+
+		replaceAllBtn.onclick = function() {
+			var selected = new Set();
+			conflicts.forEach(function(conflict) {
+				selected.add(conflict.key);
+			});
+			finalizeDecision({ replaceAll: true, replaceSelected: selected });
+		};
+
+		modalElement.addEventListener('hidden.bs.modal', function hiddenHandler() {
+			modalElement.removeEventListener('hidden.bs.modal', hiddenHandler);
+			if (!resolved) {
+				resolve({ replaceAll: false, replaceSelected: new Set() });
+			}
+		}, { once: true });
+
+		modalInstance.show();
+	});
+}
+
+function applyLookupLocator(result, approval) {
+	if (!shouldReplaceLookupField($('#locator'), result.callsign_qra, 'locator', approval)) {
+		return;
+	}
+
+	$('#locator').val(result.callsign_qra);
+	$('#locator_info').html(result.bearing);
+
+	if (result.callsign_distance != "" && result.callsign_distance != 0) {
+		document.getElementById("distance").value = result.callsign_distance;
+	}
+
+	if (result.callsign_qra != "") {
+		if (result.confirmed) {
+			$('#locator').addClass("confirmedGrid");
+			$('#locator').attr('title', 'Grid was already worked and confirmed in the past');
+		} else if (result.workedBefore) {
+			$('#locator').addClass("workedGrid");
+			$('#locator').attr('title', 'Grid was already worked in the past');
+		} else {
+			$('#locator').addClass("newGrid");
+			$('#locator').attr('title', 'New grid!');
+		}
+	} else {
+		$('#locator').removeClass("workedGrid");
+		$('#locator').removeClass("confirmedGrid");
+		$('#locator').removeClass("newGrid");
+		$('#locator').attr('title', '');
+	}
+}
 
 $( document ).ready(function() {
 	setTimeout(function() {
@@ -206,6 +376,8 @@ var favs={};
 	$('#sota_ref').selectize({
 		maxItems: 1,
 		closeAfterSelect: true,
+		createOnBlur: true,
+		selectOnTab: true,
 		loadThrottle: 250,
 		valueField: 'name',
 		labelField: 'name',
@@ -239,6 +411,8 @@ var favs={};
 	$('#wwff_ref').selectize({
 		maxItems: 1,
 		closeAfterSelect: true,
+		createOnBlur: true,
+		selectOnTab: true,
 		loadThrottle: 250,
 		valueField: 'name',
 		labelField: 'name',
@@ -270,8 +444,10 @@ var favs={};
 	});
 
 	$('#pota_ref').selectize({
-		maxItems: 1,
+		maxItems: null,
 		closeAfterSelect: true,
+		createOnBlur: true,
+		selectOnTab: true,
 		loadThrottle: 250,
 		valueField: 'name',
 		labelField: 'name',
@@ -298,8 +474,25 @@ var favs={};
 	});
 
 	$('#pota_ref').change(function(){
-		$('#pota_info').html('<a target="_blank" href="https://pota.app/#/park/'+$('#pota_ref').val()+'"><img width="32" height="32" src="'+base_url+'images/icons/pota.app.png"></a>');
-		$('#pota_info').attr('title', 'Lookup '+$('#pota_ref').val()+' reference info on pota.co');
+		var raw = $('#pota_ref').val() || '';
+		var refs = raw.split(',').map(function(ref) {
+			return ref.trim();
+		}).filter(function(ref) {
+			return ref.length > 0;
+		});
+
+		if (refs.length === 0) {
+			$('#pota_info').html('');
+			$('#pota_info').attr('title', '');
+			return;
+		}
+
+		var links = refs.map(function(ref) {
+			return '<a target="_blank" href="https://pota.app/#/park/' + ref + '"><img width="32" height="32" src="' + base_url + 'images/icons/pota.app.png"></a>';
+		}).join(' ');
+
+		$('#pota_info').html(links);
+		$('#pota_info').attr('title', 'Lookup ' + refs.join(', ') + ' reference info on pota.app');
 	});
 
 	$('#darc_dok').selectize({
@@ -593,6 +786,7 @@ function reset_fields() {
 	$('.callsign-suggest').hide();
 	$('.dxccsummary').remove();
 	$('#timesWorked').html(lang_qso_title_previous_contacts);
+	renderQsoCallhistoryPanel([], 'Type a callsign to see membership details from your uploaded call history files.');
 }
 
 function resetTimers(manual) {
@@ -628,6 +822,7 @@ $("#callsign").focusout(function() {
 
 		var find_callsign = $(this).val().toUpperCase();
 		var callsign = find_callsign;
+		var requestId = ++callsignLookupRequestId;
 
 		find_callsign=find_callsign.replace(/\//g, "-");
 		find_callsign=find_callsign.replace('Ø', '0');
@@ -635,9 +830,13 @@ $("#callsign").focusout(function() {
 		// Replace / in a callsign with - to stop urls breaking
 		$.getJSON(base_url + 'index.php/logbook/json/' + find_callsign + '/' + sat_type + '/' + json_band + '/' + json_mode + '/' + $('#stationProfile').val(), function(result)
 		{
+			if (requestId !== callsignLookupRequestId) {
+				return;
+			}
 
 			// Make sure the typed callsign and json result match
-			if($('#callsign').val = result.callsign) {
+			var currentCallsign = $('#callsign').val().toUpperCase().replace(/\//g, "-").replace('Ø', '0');
+			if(currentCallsign === find_callsign) {
 
 				// Reset QSO fields
 				resetDefaultQSOFields();
@@ -755,53 +954,29 @@ $("#callsign").focusout(function() {
 				markers.addLayer(marker).addTo(mymap);
 
 
-				/* Find Locator if the field is empty */
-				if($('#locator').val() == "") {
-					$('#locator').val(result.callsign_qra);
-					$('#locator_info').html(result.bearing);
-
-					if (result.callsign_distance != "" && result.callsign_distance != 0)
-					{
-						document.getElementById("distance").value = result.callsign_distance;
+				var overwriteConflicts = getLookupOverwriteConflicts(result);
+				showLookupOverwriteModal(overwriteConflicts).then(function(approval) {
+					if (requestId !== callsignLookupRequestId) {
+						return;
 					}
 
-					if (result.callsign_qra != "")
-					{
-						if (result.confirmed) {
-							$('#locator').addClass("confirmedGrid");
-							$('#locator').attr('title', 'Grid was already worked and confirmed in the past');
-						} else if (result.workedBefore) {
-							$('#locator').addClass("workedGrid");
-							$('#locator').attr('title', 'Grid was already worked in the past');
-						} else {
-							$('#locator').addClass("newGrid");
-							$('#locator').attr('title', 'New grid!');
-						}
-					} else {
-						$('#locator').removeClass("workedGrid");
-						$('#locator').removeClass("confirmedGrid");
-						$('#locator').removeClass("newGrid");
-						$('#locator').attr('title', '');
+					if (shouldReplaceLookupField($('#qsl_via'), result.qsl_manager, 'qsl_via', approval)) {
+						$('#qsl_via').val(result.qsl_manager);
 					}
 
-				}
+					if (shouldReplaceLookupField($('#name'), result.callsign_name, 'name', approval)) {
+						$('#name').val(result.callsign_name);
+					}
 
-				/* Find Operators Name */
-				if($('#qsl_via').val() == "") {
-					$('#qsl_via').val(result.qsl_manager);
-				}
+					if (shouldReplaceLookupField($('#qth'), result.callsign_qth, 'qth', approval)) {
+						$('#qth').val(result.callsign_qth);
+					}
 
-				/* Find Operators Name */
-				if($('#name').val() == "") {
-					$('#name').val(result.callsign_name);
-				}
+					applyLookupLocator(result, approval);
+				});
 
 				if($('#continent').val() == "") {
 					$('#continent').val(result.dxcc.cont);
-				}
-
-				if($('#qth').val() == "") {
-					$('#qth').val(result.callsign_qth);
 				}
 
 				/* Find link to qrz.com picture */
@@ -848,8 +1023,72 @@ $("#callsign").focusout(function() {
 	} else {
 		// Reset QSO fields
 		resetDefaultQSOFields();
+		// Reset tabs - go back to Previous Contacts when callsign is cleared
+		resetToPreviousContactsTab();
 	}
 })
+
+// Function to reset back to Previous Contacts tab
+function resetToPreviousContactsTab() {
+	// Clear DXCC Summary tab content
+	$('#dxcc-summary-content').html('');
+	// Switch back to Previous Contacts tab
+	if (document.getElementById('previous-contacts-tab')) {
+		var previousContactsTab = new bootstrap.Tab(document.getElementById('previous-contacts-tab'));
+		previousContactsTab.show();
+	}
+	// Show the previous contacts table
+	$('#qso-last-table').show();
+	$('#partial_view').hide();
+}
+
+// Reset to Previous Contacts tab when form is reset
+$('#qso_input').on('reset', function() {
+	setTimeout(function() {
+		resetToPreviousContactsTab();
+	}, 100);
+});
+
+function resetQsoEntryOnEscape() {
+	var qsoForm = document.getElementById('qso_input');
+	if (!qsoForm) {
+		return;
+	}
+
+	qsoForm.reset();
+	lastCallsignUpdated = '';
+	resetDefaultQSOFields();
+	resetToPreviousContactsTab();
+	$('#callsign').trigger('focus');
+}
+
+// Global ESC handling on the QSO page: reset form, return to Previous Contacts, and focus callsign.
+$(document).off('keydown.qsoEscapeReset').on('keydown.qsoEscapeReset', function(e) {
+	if (e.key !== 'Escape' && e.keyCode !== 27) {
+		return;
+	}
+
+	if (!document.getElementById('qso_input')) {
+		return;
+	}
+
+	if ($(e.target).closest('.modal.show').length) {
+		return;
+	}
+
+	e.preventDefault();
+	e.stopPropagation();
+	resetQsoEntryOnEscape();
+});
+
+// Also handle when callsign is cleared (empty value entered)
+$('#callsign').on('input keyup', function() {
+	if ($(this).val() === '' && lastCallsignUpdated !== '') {
+		lastCallsignUpdated = '';
+		resetDefaultQSOFields();
+		resetToPreviousContactsTab();
+	}
+});
 
 // Only set the frequency when not set by userdata/PHP.
 if ($('#frequency').val() == "")
@@ -1037,6 +1276,100 @@ function convert_case(str) {
 	});
 }
 
+var qsoCallhistoryLookupTimer = null;
+
+function qsoCallhistoryEscapeHtml(unsafeText) {
+	return String(unsafeText || '').replace(/[&<>\"]/g, function(tag) {
+		var replacements = {
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;'
+		};
+		return replacements[tag] || tag;
+	});
+}
+
+function qsoCallhistoryNormalizeText(value) {
+	return String(value || '').trim().toLowerCase();
+}
+
+function renderQsoCallhistoryPanel(matches, defaultText) {
+	var $card = $('#qso-callhistory-inline');
+	var $panel = $('#qso-callhistory-results');
+	if ($panel.length === 0 || $card.length === 0) {
+		return;
+	}
+
+	if (!matches || matches.length === 0) {
+		$panel.html('');
+		$card.hide();
+		return;
+	}
+
+	var html = '<ul class="list-group list-group-flush">';
+
+	$.each(matches, function(_, match) {
+		var organizationLabel = String(match.organization_label || 'Member');
+		var membershipNumber = String(match.exch1 || '');
+		var memberName = String(match.name || '');
+		var normalizedMembershipNumber = qsoCallhistoryNormalizeText(membershipNumber);
+		var normalizedMemberName = qsoCallhistoryNormalizeText(memberName);
+
+		var line = '<strong>' + qsoCallhistoryEscapeHtml(match.organization_label || 'Member') + '</strong>';
+		if (membershipNumber && qsoCallhistoryNormalizeText(organizationLabel).indexOf(normalizedMembershipNumber) === -1) {
+			line += ' #' + qsoCallhistoryEscapeHtml(membershipNumber);
+		}
+		if (memberName && normalizedMemberName !== normalizedMembershipNumber) {
+			line += ' - ' + qsoCallhistoryEscapeHtml(memberName);
+		}
+
+		var sigValue = qsoCallhistoryEscapeHtml(match.organization_label || '');
+		var sigInfoValue = qsoCallhistoryEscapeHtml(match.exch1 || '');
+		if (sigValue !== '' || sigInfoValue !== '') {
+			line += ' <button type="button" class="btn btn-sm btn-outline-secondary qso-copy-sig-btn ms-2 py-0 px-2" data-sig="' + sigValue + '" data-siginfo="' + sigInfoValue + '"><i class="fas fa-copy me-1"></i>Copy to SIG</button>';
+		}
+
+		html += '<li class="list-group-item px-0 py-2">' + line + '</li>';
+	});
+
+	html += '</ul>';
+	$panel.html(html);
+	$card.show();
+}
+
+$(document).on('click', '.qso-copy-sig-btn', function() {
+	var sig = $(this).data('sig') || '';
+	var sigInfo = $(this).data('siginfo') || '';
+
+	$('#sig').val(sig);
+	$('#sig_info').val(sigInfo);
+});
+
+function lookupQsoCallhistory(callsign) {
+	if (qsoCallhistoryLookupTimer !== null) {
+		clearTimeout(qsoCallhistoryLookupTimer);
+	}
+
+	qsoCallhistoryLookupTimer = setTimeout(function() {
+		$.ajax({
+			url: base_url + 'index.php/callhistory/lookup',
+			type: 'post',
+			data: { callsign: callsign },
+			success: function(response) {
+				if (!response || response.status !== 'ok') {
+					renderQsoCallhistoryPanel([], 'No call history match for this callsign.');
+					return;
+				}
+				renderQsoCallhistoryPanel(response.matches || [], 'No call history match for this callsign.');
+			},
+			error: function() {
+				renderQsoCallhistoryPanel([], 'Call history lookup failed.');
+			}
+		});
+	}, 250);
+}
+
 $('#dxcc_id').on('change', function() {
 	$.getJSON(base_url + 'index.php/logbook/jsonentity/' + $(this).val(), function (result) {
 		if (result.dxcc.name != undefined) {
@@ -1083,6 +1416,7 @@ $("#callsign").keyup(function() {
 	if ($(this).val().length >= 3) {
 	  $('.callsign-suggest').show();
 	  $callsign = $(this).val().replace('Ø', '0');
+	  lookupQsoCallhistory($callsign.toUpperCase());
 	  $.ajax({
 		url: 'lookup/scp',
 		method: 'POST',
@@ -1093,6 +1427,8 @@ $("#callsign").keyup(function() {
 		  $('.callsign-suggestions').text(result);
 		}
 	  });
+	} else {
+	  renderQsoCallhistoryPanel([], 'Type a callsign to see membership details from your uploaded call history files.');
 	}
   });
 
@@ -1102,13 +1438,14 @@ function resetDefaultQSOFields() {
 	$('#locator_info').text("");
 	$('#country').val("");
 	$('#continent').val("");
+	$('#lotw_info').text("");
+	$('#lotw_info').removeClass("lotw_info_red");
+	$('#lotw_info').removeClass("lotw_info_yellow");
+	$('#lotw_info').removeClass("lotw_info_orange");
+	$('#qrz_info').text("");
+	$('#hamqth_info').text("");
 	$('#dxcc_id').val("");
 	$('#cqz').val("");
-	$('#name').val("");
-	$('#qth').val("");
-	$('#locator').val("");
-	$('#iota_ref').val("");
-	$('#sota_ref').val("");
 	$("#locator").removeClass("workedGrid");
 	$("#locator").removeClass("confirmedGrid");
 	$("#locator").removeClass("newGrid");
@@ -1118,7 +1455,6 @@ function resetDefaultQSOFields() {
 	$('#callsign_info').removeClass("text-bg-secondary");
 	$('#callsign_info').removeClass("text-bg-success");
 	$('#callsign_info').removeClass("text-bg-danger");
-	$('#input_usa_state').val("");
 	$('#callsign-image').attr('style', 'display: none;');
 	$('#callsign-image-content').text("");
 	$('.dxccsummary').remove();

@@ -223,103 +223,66 @@ class Eqslmethods_model extends CI_Model {
     {
         if (empty($records) || !is_array($records)) {
             log_message('debug', 'eQSL batch update: No records provided');
-            return array('updated' => 0, 'duplicates' => 0, 'errors' => 0);
+            return array('updated' => 0, 'duplicates' => 0, 'errors' => 0, 'updated_ids' => array(), 'duplicate_ids' => array());
         }
 
         $record_count = count($records);
         log_message('info', "eQSL batch update: Processing {$record_count} confirmation records");
 
         $table_name = $this->config->item('table_name');
-        
-        // Step 1: Build WHERE conditions to find all matching QSOs
-        $match_conditions = array();
+
+        // Fetch current eQSL status for all QSOs by primary key
+        // (primary keys were already resolved by import_check, avoiding a re-query with un-normalized mode)
+        $qso_ids = array_column($records, 'qso_id');
+        $this->db->select('COL_PRIMARY_KEY, COL_EQSL_QSL_RCVD, COL_EQSL_QSLRDATE');
+        $this->db->where_in('COL_PRIMARY_KEY', $qso_ids);
+        $query = $this->db->get($table_name);
+
+        $current_status = array();
+        foreach ($query->result() as $row) {
+            $current_status[$row->COL_PRIMARY_KEY] = $row;
+        }
+
+        $batch_updates  = array();
+        $duplicates     = 0;
+        $duplicate_ids  = array();
+
         foreach ($records as $record) {
-            $match_conditions[] = sprintf(
-                "(COL_TIME_ON >= DATE_ADD(DATE_FORMAT('%s', '%%Y-%%m-%%d %%H:%%i'), INTERVAL -15 MINUTE) AND " .
-                "COL_TIME_ON <= DATE_ADD(DATE_FORMAT('%s', '%%Y-%%m-%%d %%H:%%i'), INTERVAL 15 MINUTE) AND " .
-                "COL_CALL = '%s' AND COL_BAND = '%s' AND COL_MODE = '%s' AND COL_STATION_CALLSIGN = '%s' AND station_id = %d)",
-                $this->db->escape_str($record['datetime']),
-                $this->db->escape_str($record['datetime']),
-                $this->db->escape_str($record['callsign']),
-                $this->db->escape_str($record['band']),
-                $this->db->escape_str($record['mode']),
-                $this->db->escape_str($record['station_callsign']),
-                intval($record['station_id'])
-            );
-        }
-        
-        // Step 2: Get all matching QSOs with their current eQSL status
-        $sql = "SELECT COL_PRIMARY_KEY, 
-                       COL_TIME_ON,
-                       COL_CALL, COL_BAND, COL_MODE, COL_STATION_CALLSIGN, station_id,
-                       COL_EQSL_QSL_RCVD,
-                       COL_EQSL_QSLRDATE
-                FROM {$table_name}
-                WHERE (" . implode(' OR ', $match_conditions) . ")";
-        
-        $query = $this->db->query($sql);
-        
-        if ($query->num_rows() == 0) {
-            log_message('warning', 'eQSL batch update: No matching QSOs found in database');
-            return array('updated' => 0, 'duplicates' => 0, 'errors' => 0);
-        }
-        
-        // Step 3: Build lookup map
-        $qso_map = array();
-        foreach ($query->result() as $qso) {
-            // Create a time window for matching (within +/- 15 minutes)
-            $qso_time = strtotime($qso->COL_TIME_ON);
-            for ($offset = -15; $offset <= 15; $offset++) {
-                $time_key = date('Y-m-d H:i', $qso_time + ($offset * 60));
-                $key = $time_key . '|' . $qso->COL_CALL . '|' . $qso->COL_BAND . '|' . $qso->COL_MODE . '|' . 
-                       $qso->COL_STATION_CALLSIGN . '|' . $qso->station_id;
-                
-                // Store first match only (avoid overwriting with duplicates)
-                if (!isset($qso_map[$key])) {
-                    $qso_map[$key] = $qso;
+            $qso_id    = $record['qso_id'];
+            $qsl_status = $record['qsl_status'];
+
+            if (isset($current_status[$qso_id])) {
+                $current = $current_status[$qso_id];
+                // Skip if already confirmed with the same status (duplicate)
+                if ($current->COL_EQSL_QSL_RCVD == $qsl_status && !empty($current->COL_EQSL_QSLRDATE)) {
+                    $duplicates++;
+                    $duplicate_ids[] = $qso_id;
+                    continue;
                 }
             }
-        }
-        
-        // Step 4: Process records and build batch update array
-        $batch_updates = array();
-        $duplicates = 0;
-        
-        foreach ($records as $record) {
-            $key = $record['datetime'] . '|' . $record['callsign'] . '|' . $record['band'] . '|' . 
-                   $record['mode'] . '|' . $record['station_callsign'] . '|' . $record['station_id'];
-            
-            if (!isset($qso_map[$key])) {
-                continue; // QSO not found in database
-            }
-            
-            $qso = $qso_map[$key];
-            
-            // Skip if already confirmed with this exact status (duplicate)
-            if ($qso->COL_EQSL_QSL_RCVD == $record['qsl_status'] && !empty($qso->COL_EQSL_QSLRDATE)) {
-                $duplicates++;
-                continue;
-            }
-            
+
             $batch_updates[] = array(
-                'COL_PRIMARY_KEY' => $qso->COL_PRIMARY_KEY,
+                'COL_PRIMARY_KEY'   => $qso_id,
                 'COL_EQSL_QSLRDATE' => date('Y-m-d H:i:s'),
-                'COL_EQSL_QSL_RCVD' => $record['qsl_status']
+                'COL_EQSL_QSL_RCVD' => $qsl_status,
             );
         }
-        
-        // Step 5: Execute batch update
-        $updated_count = 0;
+
+        $updated_ids = array();
         if (!empty($batch_updates)) {
             $this->db->update_batch($table_name, $batch_updates, 'COL_PRIMARY_KEY');
-            $updated_count = $this->db->affected_rows();
-            log_message('info', "eQSL batch update: Updated {$updated_count} QSO records, {$duplicates} duplicates skipped");
+            // Use count of prepared records rather than affected_rows() which is unreliable
+            // after update_batch() (returns only last batch count in CI3)
+            $updated_ids = array_column($batch_updates, 'COL_PRIMARY_KEY');
+            log_message('info', 'eQSL batch update: Updated ' . count($updated_ids) . ' QSO records, ' . $duplicates . ' duplicates skipped');
         }
-        
+
         return array(
-            'updated' => $updated_count,
-            'duplicates' => $duplicates,
-            'errors' => 0
+            'updated'       => count($updated_ids),
+            'duplicates'    => $duplicates,
+            'errors'        => 0,
+            'updated_ids'   => $updated_ids,
+            'duplicate_ids' => $duplicate_ids,
         );
     }
 

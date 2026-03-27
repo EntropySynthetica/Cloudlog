@@ -231,6 +231,8 @@ function qso_edit(id) {
                     $('#sota_ref_edit').selectize({
                         maxItems: 1,
                         closeAfterSelect: true,
+                        createOnBlur: true,
+                        selectOnTab: true,
                         loadThrottle: 250,
                         valueField: 'name',
                         labelField: 'name',
@@ -259,6 +261,8 @@ function qso_edit(id) {
                     $('#wwff_ref_edit').selectize({
                         maxItems: 1,
                         closeAfterSelect: true,
+                        createOnBlur: true,
+                        selectOnTab: true,
                         loadThrottle: 250,
                         valueField: 'name',
                         labelField: 'name',
@@ -285,8 +289,10 @@ function qso_edit(id) {
                     });
 
                     $('#pota_ref_edit').selectize({
-                        maxItems: 1,
+                        maxItems: null,
                         closeAfterSelect: true,
+                        createOnBlur: true,
+                        selectOnTab: true,
                         loadThrottle: 250,
                         valueField: 'name',
                         labelField: 'name',
@@ -645,12 +651,8 @@ function getDxccResult(dxcc, name) {
 			dxcc: dxcc,
 		},
 		success: function (html) {
-            $('.dxccsummary').remove();
-            $('.qsopane').append('<div class="dxccsummary col-sm-12"><br><div class="card"><div class="card-header dxccsummaryheader" data-bs-toggle="collapse" data-bs-target=".dxccsummarybody">DXCC Summary for '+name+'</div><div class="card-body collapse dxccsummarybody"></div></div></div>');
-            $('.dxccsummarybody').append(html);
-			$('.dxccsummaryheader').click(function(){
-				$('.dxccsummaryheader').toggleClass('dxccsummaryheaderopened');
-			});
+            // Update the DXCC Summary tab content
+            $('#dxcc-summary-content').html(html);
 		}
 	});
 }

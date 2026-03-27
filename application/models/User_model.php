@@ -154,6 +154,47 @@ class User_Model extends CI_Model {
 		}
 	}
 
+	// FUNCTION: bool exists_by_callsign($callsign, $exclude_user_id = NULL)
+	// Check if a user exists (by callsign), optionally excluding one user ID
+	function exists_by_callsign($callsign, $exclude_user_id = NULL) {
+		$clean_callsign = $this->security->xss_clean($callsign);
+
+		$this->db->where('UPPER(user_callsign)', strtoupper($clean_callsign));
+		if ($exclude_user_id !== NULL && $exclude_user_id !== '') {
+			$this->db->where('user_id !=', $this->security->xss_clean($exclude_user_id));
+		}
+
+		$query = $this->db->get($this->config->item('auth_table'));
+
+		if($query->num_rows() == 0) {
+			return 0;
+		} else {
+			return 1;
+		}
+	}
+
+	function count_admin_users() {
+		$this->db->where('user_type', 99);
+		return $this->db->count_all_results($this->config->item('auth_table'));
+	}
+
+	function would_remove_last_admin($user_id, $new_user_type) {
+		if ((string) $new_user_type === '99') {
+			return false;
+		}
+
+		$user = $this->get_by_id($user_id);
+		if ($user->num_rows() === 0) {
+			return false;
+		}
+
+		if ((int) $user->row()->user_type !== 99) {
+			return false;
+		}
+
+		return $this->count_admin_users() <= 1;
+	}
+
 	// FUNCTION: bool add($username, $password, $email, $type)
 	// Add a user
 	function add($username, $password, $email, $type, $firstname, $lastname, $callsign, $locator, $timezone,
@@ -208,6 +249,11 @@ class User_Model extends CI_Model {
 			// Check the email address isn't in use
 			if($this->exists_by_email($email)) {
 				return EEMAILEXISTS;
+			}
+
+			// Check the callsign isn't in use
+			if($this->exists_by_callsign($callsign)) {
+				return ECALLSIGNEXISTS;
 			}
 
 			// Add user and insert bandsettings for user
@@ -287,6 +333,9 @@ class User_Model extends CI_Model {
 
 				// Check to see if the user is allowed to change user levels
 				if($this->session->userdata('user_type') == 99) {
+					if ($this->would_remove_last_admin($fields['id'], $fields['user_type'])) {
+						return ELASTADMIN;
+					}
 					$data['user_type'] = $fields['user_type'];
 				}
 
@@ -297,6 +346,10 @@ class User_Model extends CI_Model {
 				// Check to see if email address is used already
 				if($this->exists_by_email($fields['user_email']) && $this->get_by_email($fields['user_email'])->row()->user_id != $fields['id']) {
 					return EEMAILEXISTS;
+				}
+				// Check to see if callsign is used already
+				if($this->exists_by_callsign($fields['user_callsign'], $fields['id'])) {
+					return ECALLSIGNEXISTS;
 				}
 
 				// Hash password

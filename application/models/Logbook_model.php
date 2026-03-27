@@ -3,6 +3,20 @@
 class Logbook_model extends CI_Model
 {
 
+  private function normalize_pota_refs($value)
+  {
+    if ($value === null) {
+      return '';
+    }
+
+    $parts = preg_split('/\s*,\s*/', strtoupper(trim((string)$value)));
+    $parts = array_filter($parts, static function ($part) {
+      return $part !== '';
+    });
+
+    return implode(',', $parts);
+  }
+
   /**
    * Clear dashboard cache for all users with access to a station
    * This should be called whenever QSOs are added, edited, or deleted
@@ -346,7 +360,7 @@ class Logbook_model extends CI_Model
       'COL_CNTY' => $clean_county_input,
       'COL_SOTA_REF' => $this->input->post('sota_ref') == null ? '' : trim($this->input->post('sota_ref')),
       'COL_WWFF_REF' => $this->input->post('wwff_ref') == null ? '' : trim($this->input->post('wwff_ref')),
-      'COL_POTA_REF' => $this->input->post('pota_ref') == null ? '' : trim($this->input->post('pota_ref')),
+      'COL_POTA_REF' => $this->normalize_pota_refs($this->input->post('pota_ref')),
       'COL_SIG' => $this->input->post('sig') == null ? '' : trim($this->input->post('sig')),
       'COL_SIG_INFO' => $this->input->post('sig_info') == null ? '' : trim($this->input->post('sig_info')),
       'COL_DARC_DOK' => $darc_dok  == null ? '' : strtoupper(trim($darc_dok)),
@@ -398,7 +412,7 @@ class Logbook_model extends CI_Model
       $data['COL_MY_IOTA'] = strtoupper(trim($station['station_iota']));
       $data['COL_MY_SOTA_REF'] = strtoupper(trim($station['station_sota']));
       $data['COL_MY_WWFF_REF'] = $station['station_wwff'] ? strtoupper(trim($station['station_wwff'])) : '';
-      $data['COL_MY_POTA_REF'] = $station['station_pota'] == null ? '' : strtoupper(trim($station['station_pota']));
+      $data['COL_MY_POTA_REF'] = $station['station_pota'] == null ? '' : $this->normalize_pota_refs($station['station_pota']);
 
       $data['COL_STATION_CALLSIGN'] = strtoupper(trim($station['station_callsign']));
       $data['COL_MY_DXCC'] = strtoupper(trim($station['station_dxcc']));
@@ -501,7 +515,10 @@ class Logbook_model extends CI_Model
         $this->db->where('COL_WWFF_REF', $searchphrase);
         break;
       case 'POTA':
+        $this->db->group_start();
         $this->db->where('COL_POTA_REF', $searchphrase);
+        $this->db->or_where("CONCAT(',', COL_POTA_REF, ',') LIKE '%," . $this->db->escape_like_str($searchphrase) . ",%'", null, false);
+        $this->db->group_end();
         break;
       case 'DOK':
         $this->db->where('COL_DARC_DOK', $searchphrase);
@@ -1298,7 +1315,7 @@ class Logbook_model extends CI_Model
     $iotaRef = $station_profile->station_iota;
     $sotaRef = $station_profile->station_sota;
     $wwffRef = $station_profile->station_wwff;
-    $potaRef = $station_profile->station_pota;
+    $potaRef = $this->normalize_pota_refs($station_profile->station_pota);
 
     $mode = $this->get_main_mode_if_submode($this->input->post('mode'));
     if ($mode == null) {
@@ -1457,7 +1474,7 @@ class Logbook_model extends CI_Model
       'COL_IOTA' => $this->input->post('iota_ref'),
       'COL_SOTA_REF' => $this->input->post('sota_ref'),
       'COL_WWFF_REF' => $this->input->post('wwff_ref'),
-      'COL_POTA_REF' => $this->input->post('pota_ref'),
+      'COL_POTA_REF' => $this->normalize_pota_refs($this->input->post('pota_ref')),
       'COL_TX_PWR' => $txpower,
       'COL_SIG' => $this->input->post('sig'),
       'COL_SIG_INFO' => $this->input->post('sig_info'),
@@ -1558,6 +1575,41 @@ class Logbook_model extends CI_Model
       return $this->db->get($this->config->item('table_name'));
     } else {
       return false;
+    }
+  }
+
+  function last_custom_paginated($limit = 6, $offset = 0)
+  {
+    $CI = &get_instance();
+    $CI->load->model('logbooks_model');
+    $logbooks_locations_array = $CI->logbooks_model->list_logbook_relationships($this->session->userdata('active_station_logbook'));
+
+    if (!empty($logbooks_locations_array)) {
+      $this->db->select('COL_CALL, COL_BAND, COL_FREQ, COL_TIME_ON, COL_RST_RCVD, COL_RST_SENT, COL_MODE, COL_SUBMODE, COL_NAME, COL_COUNTRY, COL_DXCC, COL_PRIMARY_KEY, COL_SAT_NAME, COL_SRX, COL_SRX_STRING, COL_STX, COL_STX_STRING, COL_VUCC_GRIDS, COL_GRIDSQUARE, COL_MY_GRIDSQUARE, COL_OPERATOR, COL_IOTA, COL_WWFF_REF, COL_POTA_REF, COL_STATE, COL_CNTY, COL_DISTANCE, COL_SOTA_REF, COL_CONTEST_ID, dxcc_entities.end AS end');
+      $this->db->join('dxcc_entities', $this->config->item('table_name') . '.col_dxcc = dxcc_entities.adif', 'left outer');
+      $this->db->where_in('station_id', $logbooks_locations_array);
+      $this->db->order_by("COL_TIME_ON", "desc");
+      $this->db->limit($limit, $offset);
+
+      return $this->db->get($this->config->item('table_name'));
+    } else {
+      return false;
+    }
+  }
+
+  function last_custom_count()
+  {
+    $CI = &get_instance();
+    $CI->load->model('logbooks_model');
+    $logbooks_locations_array = $CI->logbooks_model->list_logbook_relationships($this->session->userdata('active_station_logbook'));
+
+    if (!empty($logbooks_locations_array)) {
+      $this->db->select('COUNT(*) as count');
+      $this->db->where_in('station_id', $logbooks_locations_array);
+
+      return $this->db->get($this->config->item('table_name'))->row()->count;
+    } else {
+      return 0;
     }
   }
 
@@ -1945,9 +1997,11 @@ class Logbook_model extends CI_Model
   {
     if ($trusted || ($this->logbook_model->check_qso_is_accessible($id))) {
       $this->db->select($this->config->item('table_name') . '.*, station_profile.*, dxcc_entities.*, coalesce(dxcc_entities_2.name, "- NONE -") as station_country, dxcc_entities_2.end as station_end, eQSL_images.image_file as eqsl_image_file, lotw.callsign as lotwuser, lotw.lastupload');
+      $this->db->select("TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name", false);
       $this->db->from($this->config->item('table_name'));
       $this->db->join('dxcc_entities', $this->config->item('table_name') . '.col_dxcc = dxcc_entities.adif', 'left');
       $this->db->join('station_profile', 'station_profile.station_id = ' . $this->config->item('table_name') . '.station_id', 'left');
+      $this->db->join($this->config->item('auth_table') . ' users', 'station_profile.user_id = users.user_id', 'left');
       $this->db->join('dxcc_entities as dxcc_entities_2', 'station_profile.station_dxcc = dxcc_entities_2.adif', 'left outer');
       $this->db->join('eQSL_images', $this->config->item('table_name') . '.COL_PRIMARY_KEY = eQSL_images.qso_id', 'left outer');
       $this->db->join('lotw_users lotw', $this->config->item('table_name') . '.COL_CALL = lotw.callsign', 'left');
@@ -1965,8 +2019,9 @@ class Logbook_model extends CI_Model
      */
   function get_hrdlog_qsos($station_id, $limit = 1000, $offset = 0)
   {
-    $sql = 'select thcv.*, dxcc_entities.name as station_country from ' . $this->config->item('table_name') . ' thcv ' .
+    $sql = "select thcv.*, dxcc_entities.name as station_country, TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name from " . $this->config->item('table_name') . ' thcv ' .
       ' left join station_profile on thcv.station_id = station_profile.station_id' .
+      ' left join ' . $this->config->item('auth_table') . ' users on station_profile.user_id = users.user_id' .
       ' left outer join dxcc_entities on thcv.col_my_dxcc = dxcc_entities.adif' .
       ' where thcv.station_id = ' . intval($station_id) .
       ' and (COL_HRDLOG_QSO_UPLOAD_STATUS is NULL
@@ -1991,8 +2046,9 @@ class Logbook_model extends CI_Model
     if ((!$trusted) && (!$CI->stations->check_station_is_accessible($station_id))) {
       return;
     }
-    $sql = 'select thcv.*, dxcc_entities.name as station_country from ' . $this->config->item('table_name') . ' thcv ' .
+    $sql = "select thcv.*, dxcc_entities.name as station_country, TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name from " . $this->config->item('table_name') . ' thcv ' .
       ' left join station_profile on thcv.station_id = station_profile.station_id' .
+      ' left join ' . $this->config->item('auth_table') . ' users on station_profile.user_id = users.user_id' .
       ' left outer join dxcc_entities on thcv.col_my_dxcc = dxcc_entities.adif' .
       ' where thcv.station_id = ' . intval($station_id) .
       ' and (COL_QRZCOM_QSO_UPLOAD_STATUS is NULL
@@ -2017,9 +2073,11 @@ class Logbook_model extends CI_Model
       return;
     }
     $sql = "
-			SELECT qsos.*, station_profile.*, dxcc_entities.name as station_country
+        SELECT qsos.*, station_profile.*, dxcc_entities.name as station_country,
+        TRIM(COALESCE(NULLIF(CONCAT_WS(' ', users.user_firstname, users.user_lastname), ''), users.user_name, '')) as export_my_name
 			FROM %s qsos
 			INNER JOIN station_profile ON qsos.station_id = station_profile.station_id
+        LEFT JOIN " . $this->config->item('auth_table') . " users ON station_profile.user_id = users.user_id
 			LEFT JOIN dxcc_entities on qsos.col_my_dxcc = dxcc_entities.adif
 			LEFT OUTER JOIN webadif ON qsos.COL_PRIMARY_KEY = webadif.qso_id
 			WHERE qsos.station_id = %d
@@ -4489,7 +4547,7 @@ class Logbook_model extends CI_Model
           $data['COL_MY_IOTA'] = strtoupper(trim($row['station_iota']));
           $data['COL_MY_SOTA_REF'] = strtoupper(trim($row['station_sota']));
           $data['COL_MY_WWFF_REF'] = strtoupper(trim($row['station_wwff']));
-          $data['COL_MY_POTA_REF'] = $row['station_pota'] == null ? '' : strtoupper(trim($row['station_pota']));
+          $data['COL_MY_POTA_REF'] = $row['station_pota'] == null ? '' : $this->normalize_pota_refs($row['station_pota']);
 
           $data['COL_STATION_CALLSIGN'] = strtoupper(trim($row['station_callsign']));
           $data['COL_MY_DXCC'] = strtoupper(trim($row['station_dxcc']));
@@ -5435,12 +5493,24 @@ class Logbook_model extends CI_Model
     $CI->load->model('logbooks_model');
     $logbooks_locations_array = $CI->logbooks_model->list_logbook_relationships($this->session->userdata('active_station_logbook'));
 
+    $normalizedCounty = strtolower(trim((string)$county));
+    $normalizedState = strtoupper(trim((string)$state));
+    $normalizedStateExpression = "UPPER(TRIM(CASE WHEN COALESCE(COL_STATE, '') <> '' THEN COL_STATE WHEN COL_CNTY REGEXP '^[A-Za-z]{2},' THEN SUBSTRING_INDEX(COL_CNTY, ',', 1) ELSE '' END))";
+    if (preg_match('/^[A-Za-z]{2},\s*/', $normalizedCounty)) {
+      $normalizedCounty = preg_replace('/^[A-Za-z]{2},\s*/', '', $normalizedCounty);
+    }
+
+    $this->db->select($this->config->item('table_name') . '.*');
+    $this->db->select('station_profile.*');
+    $this->db->select('lotw.callsign, lotw.lastupload');
+    $this->db->select('dxcc_entities.name as name, dxcc_entities.end as end');
     $this->db->join('station_profile', 'station_profile.station_id = ' . $this->config->item('table_name') . '.station_id');
+    $this->db->join('dxcc_entities', 'dxcc_entities.adif = ' . $this->config->item('table_name') . '.COL_DXCC', 'left outer');
     $this->db->join('lotw_users lotw', 'lotw.callsign = ' . $this->config->item('table_name') . '.col_call', 'left');
     $this->db->where_in($this->config->item('table_name') . '.station_id', $logbooks_locations_array);
-    $this->db->where('COL_STATE', $state);
-    $this->db->where('COL_CNTY', $county);
-    $this->db->where('COL_PROP_MODE !=', 'SAT');
+    $this->db->where($normalizedStateExpression . ' = ' . $this->db->escape($normalizedState), null, false);
+    $this->db->where("LOWER(TRIM(SUBSTRING_INDEX(COL_CNTY, ',', -1))) = " . $this->db->escape($normalizedCounty), null, false);
+    $this->db->where('COL_BAND !=', 'SAT');
 
     return $this->db->get($this->config->item('table_name'));
   }

@@ -23,10 +23,15 @@
 		</div>
 	<?php } ?>
 
-	<?php if (validation_errors()) { ?>
-		<div class="alert alert-danger">
-			<a class="btn-close" data-bs-dismiss="alert">x</a>
-			<?php echo validation_errors(); ?>
+	<?php if (validation_errors() || isset($usertype_error)) { ?>
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			<ul class="mb-0 ps-3">
+				<?php echo validation_errors('<li>', '</li>'); ?>
+				<?php if (isset($usertype_error) && !form_error('user_type')) { ?>
+					<li><?php echo $usertype_error; ?></li>
+				<?php } ?>
+			</ul>
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 		</div>
 	<?php } ?>
 
@@ -96,7 +101,7 @@
 											<?php if ($this->session->userdata('user_type') == 99) { ?>
 												<div class="input-group">
 													<span class="input-group-text"><i class="fa fa-users"></i></span>
-													<select class="form-select" name="user_type">
+													<select class="form-select<?php echo form_error('user_type') || isset($usertype_error) ? ' is-invalid' : ''; ?>" name="user_type">
 														<?php
 														$levels = $this->config->item('auth_level');
 														foreach ($levels as $key => $value) {
@@ -105,6 +110,9 @@
 														?>
 													</select>
 												</div>
+												<?php if (form_error('user_type') || isset($usertype_error)) { ?>
+													<div class="invalid-feedback d-block"><?php echo form_error('user_type') ?: $usertype_error; ?></div>
+												<?php } ?>
 											<?php } else {
 												$l = $this->config->item('auth_level');
 												echo '<div class="input-group">
@@ -153,12 +161,11 @@
 									<div class="card-body">
 										<div class="mb-3">
 											<label><?php echo lang('account_callsign'); ?></label>
-											<input class="form-control" type="text" name="user_callsign" value="<?php if (isset($user_callsign)) {
+											<input class="form-control<?php echo form_error('user_callsign') || isset($callsign_error) ? ' is-invalid' : ''; ?>" type="text" name="user_callsign" value="<?php if (isset($user_callsign)) {
 																													echo $user_callsign;
 																												} ?>" style="text-transform: uppercase;" />
-											<?php if (isset($callsign_error)) {
-												echo "<small class=\"error\">" . $callsign_error . "</small>";
-											} else { ?>
+											<?php if (form_error('user_callsign') || isset($callsign_error)) { ?>
+												<div class="invalid-feedback d-block"><?php echo form_error('user_callsign') ?: $callsign_error; ?></div>
 											<?php } ?>
 										</div>
 
@@ -303,6 +310,13 @@
 											</div>
 
 											<div class="form-check form-switch">
+												<input name="user_dashboard_dxpedition_sat_worked" class="form-check-input" type="checkbox" role="switch" id="DashboardDxpeditionSatWorkedCheck" <?php if ($dashboard_dxpedition_sat_worked) {
+																																					echo 'checked';
+																																				} ?>>
+												<label class="form-check-label" for="DashboardDxpeditionSatWorkedCheck">Count Satellite QSOs as Worked for DXPeditions</label>
+											</div>
+
+											<div class="form-check form-switch">
 												<input name="user_dashboard_enable_qslcards_card" class="form-check-input" type="checkbox" role="switch" id="DashboardQSLCardCheck" <?php if ($dashboard_qslcard_card) {
 																																														echo 'checked';
 																																													} ?>>
@@ -328,6 +342,13 @@
 																																																echo 'checked';
 																																															} ?>>
 												<label class="form-check-label" for="DashboardvuccgridsCardCheck">Enable VUCC-Grids Card</label>
+											</div>
+
+											<div class="form-check form-switch">
+												<input name="user_dashboard_enable_map_greyline" class="form-check-input" type="checkbox" role="switch" id="DashboardMapGreylineCheck" <?php if (!isset($dashboard_map_greyline) || $dashboard_map_greyline) {
+																										echo 'checked';
+																									} ?>>
+												<label class="form-check-label" for="DashboardMapGreylineCheck">Enable Dashboard Map Greyline Layer</label>
 											</div>
 										</div>
 									</div>

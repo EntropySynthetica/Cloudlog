@@ -32,8 +32,23 @@ class Lookup_model extends CI_Model{
 			}
 		}
 
-		if (!(isset($resultArray))) $resultArray=[];
-		return $resultArray;
+		// Filter out modes that have no worked or confirmed QSOs for this entity
+		$filteredArray = [];
+		foreach ($resultArray as $mode => $bands) {
+			$hasData = false;
+			foreach ($bands as $bandValue) {
+				if ($bandValue !== '-') {
+					$hasData = true;
+					break;
+				}
+			}
+			if ($hasData) {
+				$filteredArray[$mode] = $bands;
+			}
+		}
+
+		if (!(isset($filteredArray))) $filteredArray = [];
+		return $filteredArray;
 	}
 
 	/*

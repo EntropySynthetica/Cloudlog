@@ -2,11 +2,261 @@
 $("#callsign").focus();
 
 var sessiondata = {};
-$(document).ready(async function () {
-	sessiondata = await getSession();			// save sessiondata global (we need it later, when adding qso)
-	await restoreContestSession(sessiondata);	// wait for restoring until finished
-	setRst($("#mode").val());
+$(document).ready(function () {
+	(async function() {
+		sessiondata = await getSession();			// save sessiondata global (we need it later, when adding qso)
+		await restoreContestSession(sessiondata);	// wait for restoring until finished
+		setRst($("#mode").val());
+		setContestingTabOrder($("#exchangetype").val());
+		$("#callsign").focus().select();
+	})();
+	renderCallhistoryPanel([]);
+
+	/* On Key up Calculate Bearing and Distance for Contest Gridsquare */
+	$(document).on('keyup', '#exch_gridsquare_r', function(){
+		calculateContestBearingDistance();
+	});
+
+	/* On Change also calculate Bearing and Distance for Contest Gridsquare */
+	$(document).on('change', '#exch_gridsquare_r', function(){
+		calculateContestBearingDistance();
+	});
 });
+
+function escapeHtml(unsafeText) {
+	return String(unsafeText || '').replace(/[&<>"]/g, function (tag) {
+		var replacements = {
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;'
+		};
+		return replacements[tag] || tag;
+	});
+}
+
+function normalizeCallhistoryText(value) {
+	return String(value || '').trim().toLowerCase();
+}
+
+function renderCallhistoryPanel(matches) {
+	var $card = $('#callhistory-info-panel');
+	var $panel = $('#callhistory-results');
+	if ($panel.length === 0 || $card.length === 0) {
+		return;
+	}
+
+	if (!matches || matches.length === 0) {
+		$card.hide();
+		return;
+	}
+
+	var html = '<ul class="list-group list-group-flush">';
+
+	$.each(matches, function (_, match) {
+		var organizationLabel = String(match.organization_label || 'Member');
+		var membershipNumber = String(match.exch1 || '');
+		var memberName = String(match.name || '');
+		var normalizedMembershipNumber = normalizeCallhistoryText(membershipNumber);
+		var normalizedMemberName = normalizeCallhistoryText(memberName);
+
+		var line = '<strong>' + escapeHtml(organizationLabel) + '</strong>';
+		if (membershipNumber && normalizeCallhistoryText(organizationLabel).indexOf(normalizedMembershipNumber) === -1) {
+			line += ' #' + escapeHtml(membershipNumber);
+		}
+		if (memberName && normalizedMemberName !== normalizedMembershipNumber) {
+			line += ' - ' + escapeHtml(memberName);
+		}
+
+		html += '<li class="list-group-item px-0 py-2">' + line + '</li>';
+	});
+
+	html += '</ul>';
+	$panel.html(html);
+	$card.show();
+}
+
+function lookupCallhistory(call) {
+	$.ajax({
+		url: base_url + 'index.php/callhistory/lookup',
+		type: 'post',
+		data: { callsign: call },
+		success: function (response) {
+			if (!response || response.status !== 'ok') {
+				renderCallhistoryPanel([]);
+				return;
+			}
+			renderCallhistoryPanel(response.matches || []);
+		},
+		error: function () {
+			renderCallhistoryPanel([]);
+		}
+	});
+}
+
+function setContestingTabOrder(exchangetype) {
+	var orderedFieldIds = ['callsign', 'rst_sent'];
+
+	switch (exchangetype) {
+		case 'Exchange':
+			orderedFieldIds.push('exch_sent');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_rcvd');
+			break;
+		case 'Gridsquare':
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_gridsquare_r');
+			break;
+		case 'Serial':
+			orderedFieldIds.push('exch_serial_s');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_serial_r');
+			break;
+		case 'Serialexchange':
+			orderedFieldIds.push('exch_serial_s');
+			orderedFieldIds.push('exch_sent');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_serial_r');
+			orderedFieldIds.push('exch_rcvd');
+			break;
+		case 'Serialgridsquare':
+			orderedFieldIds.push('exch_serial_s');
+			orderedFieldIds.push('rst_rcvd');
+			orderedFieldIds.push('exch_serial_r');
+			orderedFieldIds.push('exch_gridsquare_r');
+			break;
+		default:
+			orderedFieldIds.push('rst_rcvd');
+			break;
+	}
+
+	orderedFieldIds.push('name');
+	orderedFieldIds.push('comment');
+	orderedFieldIds.push('save_qso');
+
+	$('#qso_input').find('input, select, button, textarea').attr('tabindex', '-1');
+
+	var tabindex = 1;
+	orderedFieldIds.forEach(function (id) {
+		var $field = $('#' + id);
+		if ($field.length === 0 || $field.is(':disabled')) {
+			return;
+		}
+
+		if (!$field.is(':visible')) {
+			return;
+		}
+
+		$field.attr('tabindex', tabindex);
+		tabindex += 1;
+	});
+}
+
+function calculateCallsignBearingDistance(callsign) {
+	if (!callsign || callsign.length < 3) {
+		return;
+	}
+
+	// Only proceed if we have a home gridsquare
+	if (!my_gridsquare || my_gridsquare.length < 4) {
+		return;
+	}
+
+	// Look up the callsign's QRA and get bearing/distance
+	$.ajax({
+		url: base_url + 'index.php/logbook/contest_callsign_qra',
+		type: 'post',
+		data: {
+			callsign: callsign,
+			my_grid: my_gridsquare
+		},
+		success: function(data) {
+			if (data && (data.bearing !== '' || data.distance > 0)) {
+				var unit = (measurement_base === 'M' ? ' mi' : measurement_base === 'N' ? ' nmi' : ' km');
+
+				// Display in the always-visible DXCC bearing area
+				if (data.bearing !== '' && data.bearing !== undefined) {
+					$('#locator_info_contest_dxcc').html(String(data.bearing) + '°');
+					$('#locator_info_contest_dxcc').show();
+				}
+				if (data.distance && data.distance > 0) {
+					$('#distance_contest_dxcc').text(parseFloat(data.distance).toFixed(0) + unit);
+					$('#distance_contest_dxcc').show();
+				}
+			}
+		},
+		error: function(xhr, status, error) {
+			console.log("Callsign QRA lookup error: " + error);
+		},
+	});
+}
+
+function calculateContestBearingDistance() {
+	var received_grid = $("#exch_gridsquare_r").val();
+	
+	if (!received_grid || received_grid.length < 4) {
+		$('#locator_info_contest').text("");
+		$('#distance_contest').val("");
+		return;
+	}
+
+	// Only proceed if we have a home gridsquare
+	if (!my_gridsquare || my_gridsquare.length < 4) {
+		$('#locator_info_contest').text("No home grid");
+		return;
+	}
+
+	// Call backend to calculate bearing
+	$.ajax({
+		url: base_url + 'index.php/logbook/contest_bearing',
+		type: 'post',
+		data: {
+			grid: received_grid,
+			my_grid: my_gridsquare
+		},
+		success: function(data) {
+			if (data && data.length > 0) {
+				// Format bearing with degree symbol
+				$('#locator_info_contest').html(data.trim() + '°');
+			} else {
+				$('#locator_info_contest').text("");
+			}
+		},
+		error: function(xhr, status, error) {
+			console.log("Bearing error: " + error);
+		},
+	});
+
+	// Call backend to calculate distance
+	$.ajax({
+		url: base_url + 'index.php/logbook/contest_distance',
+		type: 'post',
+		data: {
+			grid: received_grid,
+			my_grid: my_gridsquare
+		},
+		success: function(data) {
+			if (data && data.length > 0 && !isNaN(data)) {
+				// Format distance with unit based on user preference
+				var distance_value = parseFloat(data).toFixed(2);
+				var unit = ' km'; // Default
+				
+				if (measurement_base === 'M') {
+					unit = ' mi';
+				} else if (measurement_base === 'N') {
+					unit = ' nmi';
+				}
+				
+				$('#distance_contest').val(distance_value + unit);
+			} else {
+				$('#distance_contest').val("");
+			}
+		},
+		error: function(xhr, status, error) {
+			console.log("Distance error: " + error);
+		},
+	});
+}
 
 // Resets the logging form and deletes session from database
 function reset_contest_session() {
@@ -20,6 +270,12 @@ function reset_contest_session() {
 	$('#exch_sent').val("");
 	$('#exch_rcvd').val("");
 	$("#exch_gridsquare_r").val("");
+	$('#locator_info_contest').text("");
+	$('#distance_contest').val("");
+	$('#locator_info_contest_dxcc').text("");
+	$('#distance_contest_dxcc').text("");
+	$('#locator_info_contest_dxcc').hide();
+	$('#distance_contest_dxcc').hide();
 
 	$("#callsign").focus();
 	setRst($("#mode").val());
@@ -50,19 +306,17 @@ $('#exchangetype').change(function () {
 	var formdata = new FormData(document.getElementById("qso_input"));
 	setSession(formdata);
 	setExchangetype(exchangetype);
+	setContestingTabOrder(exchangetype);
 });
 
 function setSession(formdata) {
     formdata.set('copyexchangeto',$("#copyexchangeto option:selected").index());
-	$.ajax({
+	return $.ajax({
 		url: base_url + 'index.php/contesting/setSession',
 		type: 'post',
 		data: formdata,
 		processData: false,
 		contentType: false,
-		success: function (data) {
-
-		}
 	});
 }
 
@@ -99,7 +353,11 @@ $(function () {
 
 // checked if worked before after blur
 $("#callsign").blur(function () {
-	        checkIfWorkedBefore();
+		 checkIfWorkedBefore();
+		// Restore full logbook table once user moves away from callsign field
+		if ($.fn.DataTable.isDataTable('.qsotable')) {
+			$('.qsotable').DataTable().search('').draw();
+		}
 });
 
 // Here we capture keystrokes to execute functions
@@ -226,9 +484,14 @@ $("#callsign").keyup(function () {
 		// checkIfWorkedBefore();
 		var qTable = $('.qsotable').DataTable();
 		qTable.search(call).draw();
+		lookupCallhistory(call.toUpperCase());
 	}
 	else if (call.length <= 2) {
 		$('.callsign-suggestions').text("");
+		renderCallhistoryPanel([]);
+		if ($.fn.DataTable.isDataTable('.qsotable')) {
+			$('.qsotable').DataTable().search('').draw();
+		}
 	}
 });
 
@@ -260,6 +523,11 @@ function checkIfWorkedBefore() {
 				}
 			}
 		});
+
+		// If gridsquare field is empty, try to get it from callsign lookup
+		if ($("#exch_gridsquare_r").val().length === 0) {
+			calculateCallsignBearingDistance(call);
+		}
 	} else {
 		$('#callsign_info').text("");
 	}
@@ -273,10 +541,18 @@ async function reset_log_fields() {
 	$('#exch_rcvd').val("");
 	$('#exch_serial_r').val("");
 	$('#exch_gridsquare_r').val("");
+	$('#locator_info_contest').text("");
+	$('#distance_contest').val("");
+	$('#locator_info_contest_dxcc').text("");
+	$('#distance_contest_dxcc').text("");
+	$('#locator_info_contest_dxcc').hide();
+	$('#distance_contest_dxcc').hide();
 	$("#callsign").focus();
 	setRst($("#mode").val());
 	$('#callsign_info').text("");
+	renderCallhistoryPanel([]);
 
+	sessiondata = await getSession();
 	await refresh_qso_table(sessiondata);
 	var qTable = $('.qsotable').DataTable();
 	qTable.search('').draw();
@@ -371,6 +647,8 @@ function setExchangetype(exchangetype) {
 		$(".gridsquarer").show();
 		$(".gridsquares").show();
 	}
+
+	setContestingTabOrder(exchangetype);
 }
 
 /*
@@ -468,15 +746,17 @@ function logQso() {
 				$('#exch_rcvd').val("");
 				$('#exch_gridsquare_r').val("");
 				$('#exch_serial_r').val("");
+				$('.callsign-suggestions').text("");
+				renderCallhistoryPanel([]);
                 if (manual) {
                   $("#start_time").focus().select();
                 } else {
                   $("#callsign").focus();
                 }
-				setSession(formdata);
-				
-				// try setting session data
-				console.log(sessiondata);
+				await setSession(formdata);
+
+				// Re-fetch session so table shows all QSOs from session start, not just last minute
+				sessiondata = await getSession();
 				await refresh_qso_table(sessiondata);
 				var qTable = $('.qsotable').DataTable();
 				qTable.search('').order([0, 'desc']).draw();

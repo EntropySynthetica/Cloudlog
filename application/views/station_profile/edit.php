@@ -1102,3 +1102,47 @@
 	</form>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	if (!window.jQuery || typeof window.jQuery.fn.selectize === 'undefined' || typeof base_url === 'undefined') {
+		return;
+	}
+
+	function initStationReferenceSelect(selector, endpoint, maxItems) {
+		window.jQuery(selector).selectize({
+			maxItems: maxItems,
+			closeAfterSelect: true,
+			createOnBlur: true,
+			selectOnTab: true,
+			loadThrottle: 250,
+			valueField: 'name',
+			labelField: 'name',
+			searchField: 'name',
+			options: [],
+			create: true,
+			load: function(query, callback) {
+				if (!query || query.length < 3) return callback();
+				window.jQuery.ajax({
+					url: base_url + 'index.php/qso/' + endpoint,
+					type: 'GET',
+					dataType: 'json',
+					data: {
+						query: query,
+					},
+					error: function() {
+						callback();
+					},
+					success: function(res) {
+						callback(res);
+					}
+				});
+			}
+		});
+	}
+
+	initStationReferenceSelect('#stationSOTAInput', 'get_sota', 1);
+	initStationReferenceSelect('#stationWWFFInput', 'get_wwff', 1);
+	initStationReferenceSelect('#stationPOTAInput', 'get_pota', null);
+});
+</script>
