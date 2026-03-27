@@ -104,14 +104,23 @@
                 curve.push([terminatorLatitude(180, declination, position.subsolarLongitude), 180]);
             }
 
-            var polygon;
-            if (nightOverNorthPole) {
-                polygon = [[90, -180]].concat(curve).concat([[90, 180]]);
-            } else {
-                polygon = [[-90, -180]].concat(curve.slice().reverse()).concat([[-90, 180]]);
+            // Build 3 copies at -360, 0, +360 so the overlay tiles across
+            // multiple world copies when the map is zoomed out.
+            var polygons = [];
+            for (var offset = -360; offset <= 360; offset += 360) {
+                var shiftedCurve = curve.map(function(pt) {
+                    return [pt[0], pt[1] + offset];
+                });
+                var polygon;
+                if (nightOverNorthPole) {
+                    polygon = [[90, -180 + offset]].concat(shiftedCurve).concat([[90, 180 + offset]]);
+                } else {
+                    polygon = [[-90, -180 + offset]].concat(shiftedCurve).concat([[-90, 180 + offset]]);
+                }
+                polygons.push([polygon]);
             }
 
-            this.setLatLngs([polygon]);
+            this.setLatLngs(polygons);
         }
     });
 
