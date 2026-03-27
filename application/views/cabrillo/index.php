@@ -87,7 +87,8 @@
 						<option value="134G">134 GHz</option>
 						<option value="241G">241 GHz</option>
 						<option value="Light"><?php echo lang('general_word_light') ?></option>
-						<option value="VHF-3-BAND and VHF-FM-ONLY (ARRL VHF Contests only)"><?php echo lang('export_cabrillo_cat_band_arrl_vhf') ?></option>
+						<option value="VHF-3-BAND">VHF-3-BAND (ARRL VHF)</option>
+						<option value="VHF-FM-ONLY">VHF-FM-ONLY (ARRL VHF)</option>
 					</select>
 				</div>
 				<div hidden="true" class="mb-3 d-flex align-items-center row additionalinfo">
