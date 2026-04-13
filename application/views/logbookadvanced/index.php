@@ -7,21 +7,15 @@
 var custom_date_format = "<?php echo $custom_date_format ?>";
 <?php
 if (!isset($options)) {
-   $options = "{\"datetime\":{\"show\":\"true\"},\"de\":{\"show\":\"true\"},\"dx\":{\"show\":\"true\"},\"mode\":{\"show\":\"true\"},\"rstr\":{\"show\":\"true\"},\"rsts\":{\"show\":\"true\"},\"band\":{\"show\":\"true\"},\"myrefs\":{\"show\":\"true\"},\"refs\":{\"show\":\"true\"},\"name\":{\"show\":\"true\"},\"qslvia\":{\"show\":\"true\"},\"qsl\":{\"show\":\"true\"},\"lotw\":{\"show\":\"true\"},\"eqsl\":{\"show\":\"true\"},\"qslmsg\":{\"show\":\"true\"},\"dxcc\":{\"show\":\"true\"},\"state\":{\"show\":\"true\"},\"cqzone\":{\"show\":\"true\"},\"iota\":{\"show\":\"true\"},\"pota\":{\"show\":\"true\"},\"operator\":{\"show\":\"true\"},\"stationLocation\":{\"show\":\"true\"}}";
+   $options = "{\"datetime\":{\"show\":\"true\"},\"de\":{\"show\":\"true\"},\"dx\":{\"show\":\"true\"},\"mode\":{\"show\":\"true\"},\"rstr\":{\"show\":\"true\"},\"rsts\":{\"show\":\"true\"},\"band\":{\"show\":\"true\"},\"myrefs\":{\"show\":\"true\"},\"refs\":{\"show\":\"true\"},\"name\":{\"show\":\"true\"},\"qslvia\":{\"show\":\"true\"},\"qsl\":{\"show\":\"true\"},\"lotw\":{\"show\":\"true\"},\"eqsl\":{\"show\":\"true\"},\"qslmsg\":{\"show\":\"true\"},\"dxcc\":{\"show\":\"true\"},\"state\":{\"show\":\"true\"},\"cqzone\":{\"show\":\"true\"},\"iota\":{\"show\":\"true\"},\"pota\":{\"show\":\"true\"},\"operator\":{\"show\":\"true\"},\"stationLocation\":{\"show\":\"true\"},\"comment\":{\"show\":\"false\"}}";
 }
 echo "var user_options = $options;";
-if (!isset($options->pota)) {
-        echo "\nvar o_template = { pota: {show: 'true'}};";
-        echo "\nuser_options={...user_options, ...o_template}";
-}
-if (!isset($options->operator)) {
-	echo "\nvar o_template = { operator: {show: 'true'}};";
-	echo "\nuser_options={...user_options, ...o_template}";
-}
-if (!isset($options->stationLocation)) {
-	echo "\nvar o_template = { stationLocation: {show: 'true'}};";
-	echo "\nuser_options={...user_options, ...o_template}";
-}
+// Use JS hasOwnProperty to only set defaults for keys missing from saved options,
+// without overriding values the user has explicitly set (e.g. false/hidden).
+echo "\nif (!user_options.hasOwnProperty('pota')) { user_options.pota = {show: 'true'}; }";
+echo "\nif (!user_options.hasOwnProperty('operator')) { user_options.operator = {show: 'true'}; }";
+echo "\nif (!user_options.hasOwnProperty('stationLocation')) { user_options.stationLocation = {show: 'true'}; }";
+echo "\nif (!user_options.hasOwnProperty('comment')) { user_options.comment = {show: 'false'}; }";
 ?>
 </script>
 <script>
@@ -490,6 +484,9 @@ $options = json_decode($options);
 			} ?>
 			<?php if (($options->operator->show ?? "true") == "true") {
 				echo '<th>' . lang('gen_hamradio_operator') . '</th>';
+			} ?>
+			<?php if (($options->comment->show ?? "false") == "true") {
+				echo '<th>' . lang('general_word_comment') . '</th>';
 			} ?>
         </tr>
     </thead>
