@@ -18,6 +18,7 @@ function echo_table_header_col($ctx, $name, $class = '') {
         case 'Operator': echo '<th' . $classAttr . '>'.$ctx->lang->line('gen_hamradio_operator').'</th>'; break;
         case 'Location': echo '<th' . $classAttr . '>'.$ctx->lang->line('cloudlog_station_profile').'</th>'; break;
         case 'Name': echo '<th' . $classAttr . '>'.$ctx->lang->line('general_word_name').'</th>'; break;
+        case 'Comment': echo '<th' . $classAttr . '>'.$ctx->lang->line('general_word_comment').'</th>'; break;
         case 'Flag': echo '<th' . $classAttr . '>&nbsp;</th>'; break;
 	}
 }
@@ -44,6 +45,7 @@ function echo_table_col($row, $name, $class = '') {
         case 'Operator':echo '<td' . $classAttr . '>' . ($row->COL_OPERATOR) . '</td>'; break;
         case 'Location':echo '<td' . $classAttr . '>' . ($row->station_profile_name) . '</td>'; break;
         case 'Name':echo '<td' . $classAttr . '>' . ($row->COL_NAME) . '</td>'; break;
+        case 'Comment':echo '<td' . $classAttr . '>' . ($row->COL_COMMENT) . '</td>'; break;
 		case 'Flag':
 			$ci->load->library('DxccFlag');	
 			$flag = strtolower($ci->dxccflag->getISO($row->COL_DXCC));
