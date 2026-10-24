@@ -98,5 +98,9 @@
 			<td><?php echo lang('cloudlog_station_profile'); ?></td>
 			<td><div class="form-check"><input class="form-check-input" name="stationLocation" type="checkbox" <?php if (($options->stationLocation->show ?? "true") == "true") { echo 'checked'; } ?>></div></td>
 		</tr>
+		<tr>
+			<td><?php echo lang('general_word_comment'); ?></td>
+			<td><div class="form-check"><input class="form-check-input" name="comment" type="checkbox" <?php if (($options->comment->show ?? "false") == "true") { echo 'checked'; } ?>></div></td>
+		</tr>
 	</tbody>
 </table>

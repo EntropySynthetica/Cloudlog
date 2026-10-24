@@ -7,7 +7,7 @@
 var custom_date_format = "<?php echo $custom_date_format ?>";
 <?php
 if (!isset($options)) {
-   $options = "{\"datetime\":{\"show\":\"true\"},\"de\":{\"show\":\"true\"},\"dx\":{\"show\":\"true\"},\"mode\":{\"show\":\"true\"},\"rstr\":{\"show\":\"true\"},\"rsts\":{\"show\":\"true\"},\"band\":{\"show\":\"true\"},\"myrefs\":{\"show\":\"true\"},\"refs\":{\"show\":\"true\"},\"name\":{\"show\":\"true\"},\"qslvia\":{\"show\":\"true\"},\"qsl\":{\"show\":\"true\"},\"lotw\":{\"show\":\"true\"},\"eqsl\":{\"show\":\"true\"},\"qslmsg\":{\"show\":\"true\"},\"dxcc\":{\"show\":\"true\"},\"state\":{\"show\":\"true\"},\"cqzone\":{\"show\":\"true\"},\"iota\":{\"show\":\"true\"},\"pota\":{\"show\":\"true\"},\"operator\":{\"show\":\"true\"},\"stationLocation\":{\"show\":\"true\"}}";
+   $options = "{\"datetime\":{\"show\":\"true\"},\"de\":{\"show\":\"true\"},\"dx\":{\"show\":\"true\"},\"mode\":{\"show\":\"true\"},\"rstr\":{\"show\":\"true\"},\"rsts\":{\"show\":\"true\"},\"band\":{\"show\":\"true\"},\"myrefs\":{\"show\":\"true\"},\"refs\":{\"show\":\"true\"},\"name\":{\"show\":\"true\"},\"qslvia\":{\"show\":\"true\"},\"qsl\":{\"show\":\"true\"},\"lotw\":{\"show\":\"true\"},\"eqsl\":{\"show\":\"true\"},\"qslmsg\":{\"show\":\"true\"},\"dxcc\":{\"show\":\"true\"},\"state\":{\"show\":\"true\"},\"cqzone\":{\"show\":\"true\"},\"iota\":{\"show\":\"true\"},\"pota\":{\"show\":\"true\"},\"operator\":{\"show\":\"true\"},\"stationLocation\":{\"show\":\"true\"},\"comment\":{\"show\":\"false\"}}";
 }
 $options_obj = json_decode($options);
 if (!is_object($options_obj)) {
@@ -18,6 +18,9 @@ foreach (['pota', 'operator', 'stationLocation'] as $new_option) {
     if (!isset($options_obj->{$new_option}) || !is_object($options_obj->{$new_option}) || !isset($options_obj->{$new_option}->show)) {
         $options_obj->{$new_option} = (object)['show' => 'true'];
     }
+}
+if (!isset($options_obj->comment) || !is_object($options_obj->comment) || !isset($options_obj->comment->show)) {
+    $options_obj->comment = (object)['show' => 'false'];
 }
 
 echo 'var user_options = ' . json_encode($options_obj) . ';';
@@ -493,6 +496,9 @@ $options = $options_obj;
 			} ?>
 			<?php if (($options->operator->show ?? "true") == "true") {
 				echo '<th>' . lang('gen_hamradio_operator') . '</th>';
+			} ?>
+			<?php if (($options->comment->show ?? "false") == "true") {
+				echo '<th>' . lang('general_word_comment') . '</th>';
 			} ?>
         </tr>
     </thead>

@@ -343,9 +343,9 @@ class Statistics extends CI_Controller {
 		$result = $query->row();
 		$trends['last_30_days'] = $result ? $result->count : 0;
 		
-		// Monthly trend (last 12 months)
+		// Monthly trend (last 24 months)
 		$monthly = array();
-		for ($i = 11; $i >= 0; $i--) {
+		for ($i = 23; $i >= 0; $i--) {
 			$month = date('Y-m', strtotime("-$i months"));
 			$year = substr($month, 0, 4);
 			$mon = substr($month, 5, 2);
